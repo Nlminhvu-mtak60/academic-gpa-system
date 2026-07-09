@@ -18,8 +18,10 @@ public static class DependencyInjection
     public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
     {
         // Register PostgreSQL DB Context
-        var connectionString = configuration.GetConnectionString("DefaultConnection") 
+        var rawConnectionString = configuration.GetConnectionString("DefaultConnection") 
             ?? "Host=localhost;Port=5432;Database=AcademicGPA;Username=postgres;Password=postgres";
+
+        var connectionString = ParsePostgresUri(rawConnectionString);
 
         services.AddDbContext<ApplicationDbContext>(options =>
             options.UseNpgsql(connectionString,
@@ -78,5 +80,23 @@ public static class DependencyInjection
         });
 
         return services;
+    }
+
+    private static string ParsePostgresUri(string connectionString)
+    {
+        if (connectionString.StartsWith("postgres://") || connectionString.StartsWith("postgresql://"))
+        {
+            var uri = new Uri(connectionString);
+            var userInfo = uri.UserInfo.Split(':');
+            var username = userInfo[0];
+            var password = userInfo.Length > 1 ? userInfo[1] : string.Empty;
+            var host = uri.Host;
+            var port = uri.Port == -1 ? 5432 : uri.Port;
+            var database = uri.AbsolutePath.TrimStart('/');
+
+            // Format into Npgsql-compatible connection string with SSL requirements for cloud databases like Render/Neon
+            return $"Host={host};Port={port};Database={database};Username={username};Password={password};SSL Mode=Require;Trust Server Certificate=true;";
+        }
+        return connectionString;
     }
 }
