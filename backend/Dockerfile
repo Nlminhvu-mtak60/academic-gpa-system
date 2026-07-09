@@ -7,6 +7,7 @@ COPY ["src/AcademicGPA.Domain/AcademicGPA.Domain.csproj", "src/AcademicGPA.Domai
 COPY ["src/AcademicGPA.Application/AcademicGPA.Application.csproj", "src/AcademicGPA.Application/"]
 COPY ["src/AcademicGPA.Infrastructure/AcademicGPA.Infrastructure.csproj", "src/AcademicGPA.Infrastructure/"]
 COPY ["src/AcademicGPA.API/AcademicGPA.API.csproj", "src/AcademicGPA.API/"]
+COPY ["Directory.Packages.props", "./"]
 RUN dotnet restore "src/AcademicGPA.API/AcademicGPA.API.csproj"
 
 # Copy remaining source code and publish
