@@ -1,0 +1,31 @@
+# Dependencies
+node_modules/
+dist/
+build/
+.env
+.env.local
+.env.*.local
+
+# .NET / C#
+bin/
+obj/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+.vs/
+.vscode/
+.idea/
+
+# Operating System
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+.DS_Store
+
+# Logs
+*.log
+logs/
+
+# Local cache
+.gemini/

@@ -1,0 +1,11 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/AcademicGPA.API/AcademicGPA.API.csproj" />
+    <Project Path="src/AcademicGPA.Application/AcademicGPA.Application.csproj" />
+    <Project Path="src/AcademicGPA.Domain/AcademicGPA.Domain.csproj" />
+    <Project Path="src/AcademicGPA.Infrastructure/AcademicGPA.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/AcademicGPA.UnitTests/AcademicGPA.UnitTests.csproj" />
+  </Folder>
+</Solution>

@@ -1,0 +1,83 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: gpa-db-prod
+    restart: unless-stopped
+    environment:
+      - POSTGRES_DB=AcademicGPA
+      - POSTGRES_USER=${DB_USER:-postgres}
+      - POSTGRES_PASSWORD=${DB_PASSWORD:-YourSecurePassword123!}
+    volumes:
+      - postgres_prod_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres}"]
+      interval: 15s
+      timeout: 10s
+      retries: 3
+    networks:
+      - gpa-network
+
+  ai-service:
+    build:
+      context: ./ai-service
+      dockerfile: Dockerfile
+    container_name: gpa-ai-service-prod
+    restart: unless-stopped
+    environment:
+      - AI_SERVICE_API_KEY=${AI_SERVICE_API_KEY:-SuperSecretAiAdvisorApiKey123!}
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+    networks:
+      - gpa-network
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: gpa-backend-prod
+    restart: unless-stopped
+    environment:
+      - ConnectionStrings__DefaultConnection=Host=db;Port=5432;Database=AcademicGPA;Username=${DB_USER:-postgres};Password=${DB_PASSWORD:-YourSecurePassword123!}
+      - AiService__BaseUrl=http://ai-service:8000
+      - AiService__ApiKey=${AI_SERVICE_API_KEY:-SuperSecretAiAdvisorApiKey123!}
+      - ApplyMigrationsOnStartup=true
+      - Jwt__Secret=${JWT_SECRET:-SuperSecretKeyEnsure32CharactersLongAndSecureForSigning!}
+      - Jwt__Issuer=${JWT_ISSUER:-gpa-api-server}
+      - Jwt__Audience=${JWT_AUDIENCE:-gpa-client-app}
+      - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:3000}
+      - PORT=10000
+    volumes:
+      - backend_logs:/app/logs
+    depends_on:
+      db:
+        condition: service_healthy
+      ai-service:
+        condition: service_healthy
+    networks:
+      - gpa-network
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: gpa-frontend-prod
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    networks:
+      - gpa-network
+
+volumes:
+  postgres_prod_data:
+  backend_logs:
+
+networks:
+  gpa-network:
+    driver: bridge
