@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../contexts/LanguageContext';
-import { KeyRound, Mail, User, AlertCircle, BookOpen } from 'lucide-react';
+import { KeyRound, Mail, User, AlertCircle, BookOpen, Eye, EyeOff } from 'lucide-react';
 
 export const RegisterPage: React.FC = () => {
   const { register } = useAuth();
@@ -11,6 +11,7 @@ export const RegisterPage: React.FC = () => {
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -30,10 +31,20 @@ export const RegisterPage: React.FC = () => {
       await register({ email, password, firstName, lastName });
       navigate('/dashboard');
     } catch (err: any) {
-      const msg = err.response?.data?.errors?.email?.[0]
-        || err.response?.data?.errors?.password?.[0]
-        || err.response?.data?.errors?.error?.[0]
-        || "Đăng ký thất bại. Vui lòng kiểm tra lại thông tin đăng ký.";
+      const errors = err.response?.data?.errors;
+      let msg = "Đăng ký thất bại. Vui lòng kiểm tra lại thông tin đăng ký.";
+      if (errors) {
+        const firstErrorKey = Object.keys(errors)[0];
+        if (firstErrorKey && Array.isArray(errors[firstErrorKey]) && errors[firstErrorKey].length > 0) {
+          msg = errors[firstErrorKey][0];
+        } else if (typeof errors === 'string') {
+          msg = errors;
+        } else if (errors.error?.[0]) {
+          msg = errors.error[0];
+        } else if (errors.Error?.[0]) {
+          msg = errors.Error[0];
+        }
+      }
       setError(msg);
     } finally {
       setSubmitting(false);
@@ -116,13 +127,20 @@ export const RegisterPage: React.FC = () => {
               <KeyRound className="h-5 w-5" />
             </span>
             <input
-              type="password"
+              type={showPassword ? 'text' : 'password'}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-500"
+              className="w-full pl-10 pr-10 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-500"
               placeholder="Min 8 chars, mixed casing, symbols"
               required
             />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+            >
+              {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+            </button>
           </div>
         </div>
 
