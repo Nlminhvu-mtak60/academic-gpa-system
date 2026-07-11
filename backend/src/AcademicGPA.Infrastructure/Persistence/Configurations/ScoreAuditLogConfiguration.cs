@@ -32,7 +32,7 @@ public class ScoreAuditLogConfiguration : IEntityTypeConfiguration<ScoreAuditLog
 
         builder.Property(sal => sal.ChangedAt)
             .IsRequired()
-            .HasDefaultValueSql("SYSUTCDATETIME()");
+            .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
         // N:1 relationship with Course, cascade delete on course removal
         builder.HasOne(sal => sal.Course)

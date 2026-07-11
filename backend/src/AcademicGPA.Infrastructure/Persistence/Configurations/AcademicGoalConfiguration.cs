@@ -33,11 +33,11 @@ public class AcademicGoalConfiguration : IEntityTypeConfiguration<AcademicGoal>
             .HasDefaultValue(true);
 
         builder.Property(g => g.CreatedAt)
-            .HasDefaultValueSql("GETUTCDATE()");
+            .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
         // Filtered unique index: only one active goal per student
         builder.HasIndex(g => new { g.StudentProfileId, g.IsActive })
-            .HasFilter("[IsActive] = 1")
+            .HasFilter("\"IsActive\" = true")
             .IsUnique()
             .HasDatabaseName("UX_AcademicGoals_StudentProfileId_Active");
 

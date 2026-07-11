@@ -32,7 +32,7 @@ public class SemesterConfiguration : IEntityTypeConfiguration<Semester>
 
         builder.Property(s => s.CreatedAt)
             .IsRequired()
-            .HasDefaultValueSql("SYSUTCDATETIME()");
+            .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
         builder.Property(s => s.IsImported)
             .IsRequired()
@@ -66,7 +66,7 @@ public class SemesterConfiguration : IEntityTypeConfiguration<Semester>
 
         // Unique constraint on SemesterName per AcademicYear for active (non-deleted) semesters
         builder.HasIndex(s => new { s.AcademicYearId, s.SemesterName })
-            .HasFilter("[IsDeleted] = 0")
+            .HasFilter("\"IsDeleted\" = false")
             .IsUnique()
             .HasDatabaseName("UX_Semesters_AcademicYearId_SemesterName");
     }

@@ -43,11 +43,11 @@ public class CourseConfiguration : IEntityTypeConfiguration<Course>
 
         builder.Property(c => c.CreatedAt)
             .IsRequired()
-            .HasDefaultValueSql("SYSUTCDATETIME()");
+            .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
         builder.Property(c => c.UpdatedAt)
             .IsRequired()
-            .HasDefaultValueSql("SYSUTCDATETIME()");
+            .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
         // 1:N Relationship with Semester
         builder.HasOne(c => c.Semester)
@@ -66,12 +66,12 @@ public class CourseConfiguration : IEntityTypeConfiguration<Course>
             .HasDatabaseName("IX_Courses_SemesterId");
 
         builder.HasIndex(c => c.OriginalCourseId)
-            .HasFilter("[OriginalCourseId] IS NOT NULL")
+            .HasFilter("\"OriginalCourseId\" IS NOT NULL")
             .HasDatabaseName("IX_Courses_OriginalCourseId");
 
         // Unique constraint on CourseName per Semester for active (non-deleted) courses
         builder.HasIndex(c => new { c.SemesterId, c.CourseName })
-            .HasFilter("[IsDeleted] = 0")
+            .HasFilter("\"IsDeleted\" = false")
             .IsUnique()
             .HasDatabaseName("UX_Courses_SemesterId_CourseName");
     }

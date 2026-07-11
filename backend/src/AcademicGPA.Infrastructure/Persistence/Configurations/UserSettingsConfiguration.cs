@@ -38,10 +38,10 @@ public class UserSettingsConfiguration : IEntityTypeConfiguration<UserSettings>
             .HasDefaultValue(true);
 
         builder.Property(us => us.CreatedAt)
-            .HasDefaultValueSql("GETUTCDATE()");
+            .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
         builder.Property(us => us.UpdatedAt)
-            .HasDefaultValueSql("GETUTCDATE()");
+            .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
         // One-to-one unique index on UserId
         builder.HasIndex(us => us.UserId)

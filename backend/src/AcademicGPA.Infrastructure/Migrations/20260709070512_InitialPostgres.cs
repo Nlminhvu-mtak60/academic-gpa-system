@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -115,7 +115,7 @@ namespace AcademicGPA.Infrastructure.Migrations
                     IsBroadcast = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
                     SenderId = table.Column<Guid>(type: "uuid", nullable: true),
                     RecipientName = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "GETUTCDATE()")
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "CURRENT_TIMESTAMP")
                 },
                 constraints: table =>
                 {
@@ -208,8 +208,8 @@ namespace AcademicGPA.Infrastructure.Migrations
                     ReceiveAcademic = table.Column<bool>(type: "boolean", nullable: false, defaultValue: true),
                     ReceiveGoal = table.Column<bool>(type: "boolean", nullable: false, defaultValue: true),
                     ReceiveGpaMilestone = table.Column<bool>(type: "boolean", nullable: false, defaultValue: true),
-                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "GETUTCDATE()"),
-                    UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "GETUTCDATE()")
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "CURRENT_TIMESTAMP"),
+                    UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "CURRENT_TIMESTAMP")
                 },
                 constraints: table =>
                 {
@@ -254,7 +254,7 @@ namespace AcademicGPA.Infrastructure.Migrations
                     Notes = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
                     IsAchieved = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
                     IsActive = table.Column<bool>(type: "boolean", nullable: false, defaultValue: true),
-                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "GETUTCDATE()")
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "CURRENT_TIMESTAMP")
                 },
                 constraints: table =>
                 {
@@ -282,7 +282,7 @@ namespace AcademicGPA.Infrastructure.Migrations
                     IsCurrent = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
                     SortOrder = table.Column<int>(type: "integer", nullable: false, defaultValue: 0),
                     IsDeleted = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
-                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "SYSUTCDATETIME()"),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "CURRENT_TIMESTAMP"),
                     IsImported = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
                     ImportedCredits = table.Column<int>(type: "integer", nullable: false, defaultValue: 0),
                     ImportedGpa10 = table.Column<decimal>(type: "numeric(4,2)", precision: 4, scale: 2, nullable: false, defaultValue: 0.00m),
@@ -291,7 +291,7 @@ namespace AcademicGPA.Infrastructure.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_AcademicYears", x => x.Id);
-                    table.CheckConstraint("CK_AcademicYears_Years", "[StartYear] <= [EndYear] AND [EndYear] <= [StartYear] + 1");
+                    table.CheckConstraint("CK_AcademicYears_Years", "\"StartYear\" <= \"EndYear\" AND \"EndYear\" <= \"StartYear\" + 1");
                     table.ForeignKey(
                         name: "FK_AcademicYears_StudentProfiles_StudentProfileId",
                         column: x => x.StudentProfileId,
@@ -313,7 +313,7 @@ namespace AcademicGPA.Infrastructure.Migrations
                     ImportedCredits = table.Column<int>(type: "integer", nullable: false, defaultValue: 0),
                     ImportedGpa10 = table.Column<decimal>(type: "numeric(4,2)", precision: 4, scale: 2, nullable: false, defaultValue: 0.00m),
                     ImportedGpa4 = table.Column<decimal>(type: "numeric(3,2)", precision: 3, scale: 2, nullable: false, defaultValue: 0.00m),
-                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "SYSUTCDATETIME()")
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "CURRENT_TIMESTAMP")
                 },
                 constraints: table =>
                 {
@@ -338,8 +338,8 @@ namespace AcademicGPA.Infrastructure.Migrations
                     IsRetake = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
                     OriginalCourseId = table.Column<Guid>(type: "uuid", nullable: true),
                     IsDeleted = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
-                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "SYSUTCDATETIME()"),
-                    UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "SYSUTCDATETIME()")
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "CURRENT_TIMESTAMP"),
+                    UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "CURRENT_TIMESTAMP")
                 },
                 constraints: table =>
                 {
@@ -398,7 +398,7 @@ namespace AcademicGPA.Infrastructure.Migrations
                     FieldChanged = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
                     OldValue = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: true),
                     NewValue = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: true),
-                    ChangedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "SYSUTCDATETIME()")
+                    ChangedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "CURRENT_TIMESTAMP")
                 },
                 constraints: table =>
                 {
@@ -425,8 +425,8 @@ namespace AcademicGPA.Infrastructure.Migrations
                     Gpa4Value = table.Column<decimal>(type: "numeric(5,2)", nullable: true),
                     AcademicClassification = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: true),
                     IsPass = table.Column<bool>(type: "boolean", nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "SYSUTCDATETIME()"),
-                    UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "SYSUTCDATETIME()")
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "CURRENT_TIMESTAMP"),
+                    UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "CURRENT_TIMESTAMP")
                 },
                 constraints: table =>
                 {
@@ -494,7 +494,7 @@ namespace AcademicGPA.Infrastructure.Migrations
                 table: "AcademicGoals",
                 columns: new[] { "StudentProfileId", "IsActive" },
                 unique: true,
-                filter: "[IsActive] = 1");
+                filter: "\"IsActive\" = true");
 
             migrationBuilder.CreateIndex(
                 name: "IX_AcademicYears_StudentProfileId",
@@ -506,7 +506,7 @@ namespace AcademicGPA.Infrastructure.Migrations
                 table: "AcademicYears",
                 columns: new[] { "StudentProfileId", "YearName" },
                 unique: true,
-                filter: "[IsDeleted] = 0");
+                filter: "\"IsDeleted\" = false");
 
             migrationBuilder.CreateIndex(
                 name: "IX_ConversationMessages_ConversationId",
@@ -522,7 +522,7 @@ namespace AcademicGPA.Infrastructure.Migrations
                 name: "IX_Courses_OriginalCourseId",
                 table: "Courses",
                 column: "OriginalCourseId",
-                filter: "[OriginalCourseId] IS NOT NULL");
+                filter: "\"OriginalCourseId\" IS NOT NULL");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Courses_SemesterId",
@@ -534,7 +534,7 @@ namespace AcademicGPA.Infrastructure.Migrations
                 table: "Courses",
                 columns: new[] { "SemesterId", "CourseName" },
                 unique: true,
-                filter: "[IsDeleted] = 0");
+                filter: "\"IsDeleted\" = false");
 
             migrationBuilder.CreateIndex(
                 name: "IX_GradeScaleEntries_GradeScaleId",
@@ -597,7 +597,7 @@ namespace AcademicGPA.Infrastructure.Migrations
                 table: "Semesters",
                 columns: new[] { "AcademicYearId", "SemesterName" },
                 unique: true,
-                filter: "[IsDeleted] = 0");
+                filter: "\"IsDeleted\" = false");
 
             migrationBuilder.CreateIndex(
                 name: "IX_StudentProfiles_StudentCode",
@@ -688,3 +688,4 @@ namespace AcademicGPA.Infrastructure.Migrations
         }
     }
 }
+

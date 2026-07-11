@@ -51,11 +51,11 @@ public class ScoreConfiguration : IEntityTypeConfiguration<Score>
 
         builder.Property(s => s.CreatedAt)
             .IsRequired()
-            .HasDefaultValueSql("SYSUTCDATETIME()");
+            .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
         builder.Property(s => s.UpdatedAt)
             .IsRequired()
-            .HasDefaultValueSql("SYSUTCDATETIME()");
+            .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
         // 1:1 relationship with Course, cascade delete
         builder.HasOne(s => s.Course)

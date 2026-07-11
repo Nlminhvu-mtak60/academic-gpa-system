@@ -50,7 +50,7 @@ public class AcademicYearConfiguration : IEntityTypeConfiguration<AcademicYear>
 
         builder.Property(ay => ay.CreatedAt)
             .IsRequired()
-            .HasDefaultValueSql("SYSUTCDATETIME()");
+            .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
         builder.Property(ay => ay.IsImported)
             .IsRequired()
@@ -84,11 +84,11 @@ public class AcademicYearConfiguration : IEntityTypeConfiguration<AcademicYear>
 
         // Unique constraint on YearName per StudentProfile for active (non-deleted) years
         builder.HasIndex(ay => new { ay.StudentProfileId, ay.YearName })
-            .HasFilter("[IsDeleted] = 0")
+            .HasFilter("\"IsDeleted\" = false")
             .IsUnique()
             .HasDatabaseName("UX_AcademicYears_StudentProfileId_YearName");
 
         // Check constraint
-        builder.ToTable(t => t.HasCheckConstraint("CK_AcademicYears_Years", "[StartYear] <= [EndYear] AND [EndYear] <= [StartYear] + 1"));
+        builder.ToTable(t => t.HasCheckConstraint("CK_AcademicYears_Years", "\"StartYear\" <= \"EndYear\" AND \"EndYear\" <= \"StartYear\" + 1"));
     }
 }

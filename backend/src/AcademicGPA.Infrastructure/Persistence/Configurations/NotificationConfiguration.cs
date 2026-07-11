@@ -37,7 +37,7 @@ public class NotificationConfiguration : IEntityTypeConfiguration<Notification>
             .HasMaxLength(200);
 
         builder.Property(n => n.CreatedAt)
-            .HasDefaultValueSql("GETUTCDATE()");
+            .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
         // Indexes for performance
         builder.HasIndex(n => n.UserId)
