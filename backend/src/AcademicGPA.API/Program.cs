@@ -148,10 +148,32 @@ using (var scope = app.Services.CreateScope())
         var context = services.GetRequiredService<AcademicGPA.Infrastructure.Persistence.ApplicationDbContext>();
         context.Database.Migrate();
         Log.Information("Database migrations applied successfully.");
+
+        // Automatically seed default admin if not exists
+        var adminEmail = "admin@gpa.domain.com";
+        var hasAdmin = context.Users.Any(u => u.Email == adminEmail);
+        if (!hasAdmin)
+        {
+            var hasher = services.GetRequiredService<AcademicGPA.Application.Common.Interfaces.IPasswordHasher>();
+            var adminUser = new AcademicGPA.Domain.Entities.User
+            {
+                Id = Guid.Parse("33a25d2c-80a5-4089-9a2c-f60897f2c253"),
+                Email = adminEmail,
+                PasswordHash = hasher.HashPassword("Admin@123456"),
+                FirstName = "System",
+                LastName = "Administrator",
+                Role = AcademicGPA.Domain.Enums.UserRole.Admin,
+                IsActive = true,
+                IsEmailVerified = true
+            };
+            context.Users.Add(adminUser);
+            context.SaveChanges();
+            Log.Information("Default admin user seeded successfully.");
+        }
     }
     catch (Exception ex)
     {
-        Log.Error(ex, "An error occurred while migrating the database.");
+        Log.Error(ex, "An error occurred while migrating/seeding the database.");
     }
 }
 
