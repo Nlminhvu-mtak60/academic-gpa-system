@@ -17,8 +17,9 @@ public static class DependencyInjection
 {
     public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
     {
-        // Register PostgreSQL DB Context
-        var rawConnectionString = configuration.GetConnectionString("DefaultConnection") 
+        // Register PostgreSQL DB Context (supports Render DATABASE_URL & standard connection strings)
+        var rawConnectionString = Environment.GetEnvironmentVariable("DATABASE_URL")
+            ?? configuration.GetConnectionString("DefaultConnection") 
             ?? "Host=localhost;Port=5432;Database=AcademicGPA;Username=postgres;Password=postgres";
 
         var connectionString = ParsePostgresUri(rawConnectionString);
