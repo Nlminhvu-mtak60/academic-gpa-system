@@ -116,7 +116,7 @@ public class GoogleLoginCommandHandler : IRequestHandler<GoogleLoginCommand, Aut
         }
         else
         {
-            user.RefreshTokens = new List<RefreshToken>();
+            user.RefreshTokens = new List<AcademicGPA.Domain.Entities.RefreshToken>();
         }
 
         refreshToken.UserId = user.Id;
