@@ -20,15 +20,18 @@ public class GetCoursesQueryHandler : IRequestHandler<GetCoursesQuery, IReadOnly
     private readonly IApplicationDbContext _context;
     private readonly ICurrentUserService _currentUserService;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly IGpaCalculator _gpaCalculator;
 
     public GetCoursesQueryHandler(
         IApplicationDbContext context,
         ICurrentUserService currentUserService,
-        IUnitOfWork unitOfWork)
+        IUnitOfWork unitOfWork,
+        IGpaCalculator gpaCalculator)
     {
         _context = context;
         _currentUserService = currentUserService;
         _unitOfWork = unitOfWork;
+        _gpaCalculator = gpaCalculator;
     }
 
     public async Task<IReadOnlyList<CourseDto>> Handle(GetCoursesQuery request, CancellationToken cancellationToken)
@@ -60,24 +63,37 @@ public class GetCoursesQueryHandler : IRequestHandler<GetCoursesQuery, IReadOnly
         var courses = await _unitOfWork.Courses.GetBySemesterIdAsync(request.SemesterId, cancellationToken);
 
         // 5. Map to DTOs
-        return courses.Select(c => new CourseDto(
-            c.Id,
-            c.CourseCode,
-            c.CourseName,
-            c.Credits,
-            c.IsRetake,
-            c.OriginalCourseId,
-            c.Score != null ? new ScoreDto(
-                c.Score.AttendanceScore,
-                c.Score.ContinuousScore,
-                c.Score.FinalExamScore,
-                c.Score.CourseScore,
-                c.Score.LetterGrade,
-                c.Score.Gpa4Value,
-                c.Score.AcademicClassification,
-                c.Score.IsPass,
-                c.Score.UpdatedAt
-            ) : null
-        )).ToList();
+        return courses.Select(c =>
+        {
+            bool? isPass = c.Score != null
+                ? (c.Score.CourseScore.HasValue && c.Score.CourseScore.Value >= 4.0m ? true : c.Score.IsPass)
+                : null;
+
+            string? classification = c.Score?.AcademicClassification;
+            if (c.Score != null && c.Score.CourseScore.HasValue && string.IsNullOrWhiteSpace(classification))
+            {
+                classification = _gpaCalculator.MapToGradeResult(c.Score.CourseScore.Value).AcademicClassification;
+            }
+
+            return new CourseDto(
+                c.Id,
+                c.CourseCode,
+                c.CourseName,
+                c.Credits,
+                c.IsRetake,
+                c.OriginalCourseId,
+                c.Score != null ? new ScoreDto(
+                    c.Score.AttendanceScore,
+                    c.Score.ContinuousScore,
+                    c.Score.FinalExamScore,
+                    c.Score.CourseScore,
+                    c.Score.LetterGrade,
+                    c.Score.Gpa4Value,
+                    classification,
+                    isPass,
+                    c.Score.UpdatedAt
+                ) : null
+            );
+        }).ToList();
     }
 }

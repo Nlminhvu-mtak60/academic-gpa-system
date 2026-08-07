@@ -89,7 +89,7 @@ public class GetSemestersQueryHandler : IRequestHandler<GetSemestersQuery, IRead
                 var gradedBestAttempts = bestAttempts.Where(c => c.Score != null && c.Score.CourseScore.HasValue).ToList();
 
                 var completedCredits = bestAttempts
-                    .Where(c => c.Score != null && c.Score.IsPass == true)
+                    .Where(c => c.Score != null && (c.Score.IsPass == true || (c.Score.CourseScore.HasValue && c.Score.CourseScore.Value >= 4.0m)))
                     .Sum(c => c.Credits);
 
                 var gpa10 = _gpaCalculator.CalculateGpa10(gradedBestAttempts) ?? 0.00m;

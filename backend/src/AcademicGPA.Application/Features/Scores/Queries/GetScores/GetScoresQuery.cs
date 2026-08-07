@@ -17,15 +17,18 @@ public class GetScoresQueryHandler : IRequestHandler<GetScoresQuery, ScoreDto>
     private readonly IApplicationDbContext _context;
     private readonly ICurrentUserService _currentUserService;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly IGpaCalculator _gpaCalculator;
 
     public GetScoresQueryHandler(
         IApplicationDbContext context,
         ICurrentUserService currentUserService,
-        IUnitOfWork unitOfWork)
+        IUnitOfWork unitOfWork,
+        IGpaCalculator gpaCalculator)
     {
         _context = context;
         _currentUserService = currentUserService;
         _unitOfWork = unitOfWork;
+        _gpaCalculator = gpaCalculator;
     }
 
     public async Task<ScoreDto> Handle(GetScoresQuery request, CancellationToken cancellationToken)
@@ -60,6 +63,13 @@ public class GetScoresQueryHandler : IRequestHandler<GetScoresQuery, ScoreDto>
             return new ScoreDto(null, null, null, null, null, null, null, null, null);
         }
 
+        bool? isPass = score.CourseScore.HasValue && score.CourseScore.Value >= 4.0m ? true : score.IsPass;
+        string? classification = score.AcademicClassification;
+        if (score.CourseScore.HasValue && string.IsNullOrWhiteSpace(classification))
+        {
+            classification = _gpaCalculator.MapToGradeResult(score.CourseScore.Value).AcademicClassification;
+        }
+
         return new ScoreDto(
             score.AttendanceScore,
             score.ContinuousScore,
@@ -67,8 +77,8 @@ public class GetScoresQueryHandler : IRequestHandler<GetScoresQuery, ScoreDto>
             score.CourseScore,
             score.LetterGrade,
             score.Gpa4Value,
-            score.AcademicClassification,
-            score.IsPass,
+            classification,
+            isPass,
             score.UpdatedAt
         );
     }
