@@ -506,9 +506,25 @@ export const CoursesPage: React.FC = () => {
     return 'bg-red-50 text-red-700 dark:bg-red-950/30 dark:text-red-400 border border-red-200/40 dark:border-red-800/20';
   };
 
-  const getPassFailBadge = (isPass: boolean | null) => {
-    if (isPass === null) return null;
-    return isPass ? (
+  const getFallbackClassification = (score: number): string => {
+    if (score >= 9.0) return 'Outstanding';
+    if (score >= 8.5) return 'Excellent';
+    if (score >= 8.0) return 'Very Good';
+    if (score >= 7.0) return 'Good';
+    if (score >= 6.5) return 'Average Good';
+    if (score >= 5.5) return 'Average';
+    if (score >= 5.0) return 'Average';
+    if (score >= 4.0) return 'Weak';
+    return 'Poor';
+  };
+
+  const getPassFailBadge = (isPass: boolean | null | undefined, courseScore?: number | null) => {
+    const effectivePass = (courseScore !== null && courseScore !== undefined && courseScore >= 4.0)
+      ? true
+      : (isPass ?? (courseScore !== null && courseScore !== undefined ? courseScore >= 4.0 : null));
+
+    if (effectivePass === null) return null;
+    return effectivePass ? (
       <span className="px-2.5 py-1 text-xs font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-400 rounded-md">
         {t('scores.pass')}
       </span>
@@ -1379,7 +1395,11 @@ export const CoursesPage: React.FC = () => {
                         <div>
                           <span className="text-[10px] text-gray-400 uppercase block font-bold">Xếp loại</span>
                           <span className="text-lg font-black text-violet-700 dark:text-violet-300 block mt-1.5">
-                            {detailScores.academicClassification ? getLocalizedClassification(detailScores.academicClassification) : '—'}
+                            {detailScores.academicClassification 
+                              ? getLocalizedClassification(detailScores.academicClassification) 
+                              : (detailScores.courseScore !== null && detailScores.courseScore !== undefined 
+                                  ? getLocalizedClassification(getFallbackClassification(detailScores.courseScore)) 
+                                  : '—')}
                           </span>
                         </div>
                       </div>
@@ -1388,7 +1408,7 @@ export const CoursesPage: React.FC = () => {
                           <Calendar className="h-3.5 w-3.5" />
                           Cập nhật: {detailScores.calculatedAt ? new Date(detailScores.calculatedAt).toLocaleString('vi-VN') : 'N/A'}
                         </span>
-                        {getPassFailBadge(detailScores.isPass)}
+                        {getPassFailBadge(detailScores.isPass, detailScores.courseScore)}
                       </div>
                     </div>
                   )}

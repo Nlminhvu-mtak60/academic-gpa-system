@@ -179,6 +179,46 @@ using (var scope = app.Services.CreateScope())
         {
             context.Database.ExecuteSqlRaw(@"UPDATE ""Users"" SET ""PasswordHash"" = '$2a$12$ekQGsGvIMMsFcwUXFB4pkOis8.eHmDgTsL/DBd/6dQA4mSWRt4HcC' WHERE ""PasswordHash"" IS NULL OR ""PasswordHash"" = '' OR LENGTH(""PasswordHash"") < 20;");
             Log.Information("Direct SQL password hash cleanup completed.");
+
+            context.Database.ExecuteSqlRaw(@"
+                UPDATE ""Scores"" 
+                SET ""IsPass"" = TRUE, 
+                    ""AcademicClassification"" = CASE 
+                        WHEN ""CourseScore"" >= 9.0 THEN 'Outstanding'
+                        WHEN ""CourseScore"" >= 8.5 THEN 'Excellent'
+                        WHEN ""CourseScore"" >= 8.0 THEN 'Very Good'
+                        WHEN ""CourseScore"" >= 7.0 THEN 'Good'
+                        WHEN ""CourseScore"" >= 6.5 THEN 'Average Good'
+                        WHEN ""CourseScore"" >= 5.5 THEN 'Average'
+                        WHEN ""CourseScore"" >= 5.0 THEN 'Average'
+                        WHEN ""CourseScore"" >= 4.0 THEN 'Weak'
+                        ELSE 'Poor'
+                    END,
+                    ""LetterGrade"" = CASE
+                        WHEN ""CourseScore"" >= 9.0 THEN 'A+'
+                        WHEN ""CourseScore"" >= 8.5 THEN 'A'
+                        WHEN ""CourseScore"" >= 8.0 THEN 'B+'
+                        WHEN ""CourseScore"" >= 7.0 THEN 'B'
+                        WHEN ""CourseScore"" >= 6.5 THEN 'C+'
+                        WHEN ""CourseScore"" >= 5.5 THEN 'C'
+                        WHEN ""CourseScore"" >= 5.0 THEN 'D+'
+                        WHEN ""CourseScore"" >= 4.0 THEN 'D'
+                        ELSE 'F'
+                    END,
+                    ""Gpa4Value"" = CASE
+                        WHEN ""CourseScore"" >= 9.0 THEN 4.0
+                        WHEN ""CourseScore"" >= 8.5 THEN 3.7
+                        WHEN ""CourseScore"" >= 8.0 THEN 3.5
+                        WHEN ""CourseScore"" >= 7.0 THEN 3.0
+                        WHEN ""CourseScore"" >= 6.5 THEN 2.5
+                        WHEN ""CourseScore"" >= 5.5 THEN 2.0
+                        WHEN ""CourseScore"" >= 5.0 THEN 1.5
+                        WHEN ""CourseScore"" >= 4.0 THEN 1.0
+                        ELSE 0.0
+                    END
+                WHERE ""CourseScore"" IS NOT NULL AND (""IsPass"" IS NULL OR (""IsPass"" = FALSE AND ""CourseScore"" >= 4.0) OR ""AcademicClassification"" IS NULL);
+            ");
+            Log.Information("Direct SQL score IsPass and AcademicClassification cleanup completed.");
         }
         catch (Exception sqlEx)
         {
