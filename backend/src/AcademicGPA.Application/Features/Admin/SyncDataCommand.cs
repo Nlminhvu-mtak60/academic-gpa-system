@@ -11,152 +11,163 @@ using Microsoft.EntityFrameworkCore;
 
 namespace AcademicGPA.Application.Features.Admin;
 
-public record SyncUserDto(
-    Guid Id,
-    string Email,
-    string PasswordHash,
-    string FirstName,
-    string LastName,
-    string Role,
-    bool IsActive,
-    bool IsEmailVerified,
-    string? GoogleId,
-    string? AvatarUrl,
-    string PreferredLanguage,
-    string PreferredTheme,
-    DateTime CreatedAt,
-    DateTime UpdatedAt,
-    DateTime? LastLoginAt,
-    DateTime? LockedAt,
-    string? LockReason,
-    bool IsDeleted,
-    bool ForcePasswordChange
-);
+public class SyncUserDto
+{
+    public Guid Id { get; set; }
+    public string Email { get; set; } = string.Empty;
+    public string PasswordHash { get; set; } = string.Empty;
+    public string FirstName { get; set; } = string.Empty;
+    public string LastName { get; set; } = string.Empty;
+    public string Role { get; set; } = string.Empty;
+    public bool IsActive { get; set; }
+    public bool IsEmailVerified { get; set; }
+    public string? GoogleId { get; set; }
+    public string? AvatarUrl { get; set; }
+    public string PreferredLanguage { get; set; } = "vi";
+    public string PreferredTheme { get; set; } = "light";
+    public DateTime CreatedAt { get; set; }
+    public DateTime UpdatedAt { get; set; }
+    public DateTime? LastLoginAt { get; set; }
+    public DateTime? LockedAt { get; set; }
+    public string? LockReason { get; set; }
+    public bool IsDeleted { get; set; }
+    public bool ForcePasswordChange { get; set; }
+}
 
-public record SyncStudentProfileDto(
-    Guid Id,
-    Guid UserId,
-    string StudentCode,
-    string UniversityName,
-    string MajorName,
-    int EnrollmentYear,
-    int TotalRequiredCredits
-);
+public class SyncStudentProfileDto
+{
+    public Guid Id { get; set; }
+    public Guid UserId { get; set; }
+    public string StudentCode { get; set; } = string.Empty;
+    public string UniversityName { get; set; } = string.Empty;
+    public string MajorName { get; set; } = string.Empty;
+    public int EnrollmentYear { get; set; }
+    public int TotalRequiredCredits { get; set; }
+}
 
-public record SyncAcademicYearDto(
-    Guid Id,
-    Guid StudentProfileId,
-    string YearName,
-    int StartYear,
-    int EndYear,
-    DateTime StartDate,
-    DateTime EndDate,
-    string Status,
-    bool IsCurrent,
-    int SortOrder,
-    bool IsDeleted,
-    DateTime CreatedAt
-);
+public class SyncAcademicYearDto
+{
+    public Guid Id { get; set; }
+    public Guid StudentProfileId { get; set; }
+    public string YearName { get; set; } = string.Empty;
+    public int StartYear { get; set; }
+    public int EndYear { get; set; }
+    public DateTime StartDate { get; set; }
+    public DateTime EndDate { get; set; }
+    public string Status { get; set; } = string.Empty;
+    public bool IsCurrent { get; set; }
+    public int SortOrder { get; set; }
+    public bool IsDeleted { get; set; }
+    public DateTime CreatedAt { get; set; }
+}
 
-public record SyncSemesterDto(
-    Guid Id,
-    Guid AcademicYearId,
-    string SemesterName,
-    int SortOrder,
-    bool IsDeleted,
-    bool IsImported,
-    int ImportedCredits,
-    decimal ImportedGpa10,
-    decimal ImportedGpa4,
-    DateTime CreatedAt
-);
+public class SyncSemesterDto
+{
+    public Guid Id { get; set; }
+    public Guid AcademicYearId { get; set; }
+    public string SemesterName { get; set; } = string.Empty;
+    public int SortOrder { get; set; }
+    public bool IsDeleted { get; set; }
+    public bool IsImported { get; set; }
+    public int ImportedCredits { get; set; }
+    public decimal ImportedGpa10 { get; set; }
+    public decimal ImportedGpa4 { get; set; }
+    public DateTime CreatedAt { get; set; }
+}
 
-public record SyncCourseDto(
-    Guid Id,
-    Guid SemesterId,
-    string CourseCode,
-    string CourseName,
-    int Credits,
-    bool IsRetake,
-    Guid? OriginalCourseId,
-    bool IsDeleted,
-    DateTime CreatedAt,
-    DateTime UpdatedAt
-);
+public class SyncCourseDto
+{
+    public Guid Id { get; set; }
+    public Guid SemesterId { get; set; }
+    public string CourseCode { get; set; } = string.Empty;
+    public string CourseName { get; set; } = string.Empty;
+    public int Credits { get; set; }
+    public bool IsRetake { get; set; }
+    public Guid? OriginalCourseId { get; set; }
+    public bool IsDeleted { get; set; }
+    public DateTime CreatedAt { get; set; }
+    public DateTime UpdatedAt { get; set; }
+}
 
-public record SyncScoreDto(
-    Guid Id,
-    Guid CourseId,
-    decimal? AttendanceScore,
-    decimal? ContinuousScore,
-    decimal? FinalExamScore,
-    decimal? CourseScore,
-    string? LetterGrade,
-    decimal? Gpa4Value,
-    string? AcademicClassification,
-    bool? IsPass,
-    DateTime CreatedAt,
-    DateTime UpdatedAt
-);
+public class SyncScoreDto
+{
+    public Guid Id { get; set; }
+    public Guid CourseId { get; set; }
+    public decimal? AttendanceScore { get; set; }
+    public decimal? ContinuousScore { get; set; }
+    public decimal? FinalExamScore { get; set; }
+    public decimal? CourseScore { get; set; }
+    public string? LetterGrade { get; set; }
+    public decimal? Gpa4Value { get; set; }
+    public string? AcademicClassification { get; set; }
+    public bool? IsPass { get; set; }
+    public DateTime CreatedAt { get; set; }
+    public DateTime UpdatedAt { get; set; }
+}
 
-public record SyncScoreAuditLogDto(
-    Guid Id,
-    Guid CourseId,
-    string FieldChanged,
-    string? OldValue,
-    string? NewValue,
-    DateTime ChangedAt
-);
+public class SyncScoreAuditLogDto
+{
+    public Guid Id { get; set; }
+    public Guid CourseId { get; set; }
+    public string FieldChanged { get; set; } = string.Empty;
+    public string? OldValue { get; set; }
+    public string? NewValue { get; set; }
+    public DateTime ChangedAt { get; set; }
+}
 
-public record SyncUserSettingDto(
-    Guid Id,
-    Guid UserId,
-    string PreferredLanguage,
-    string PreferredTheme,
-    bool ReceiveSystem,
-    bool ReceiveAcademic,
-    bool ReceiveGoal,
-    bool ReceiveGpaMilestone,
-    DateTime CreatedAt,
-    DateTime UpdatedAt
-);
+public class SyncUserSettingDto
+{
+    public Guid Id { get; set; }
+    public Guid UserId { get; set; }
+    public string PreferredLanguage { get; set; } = "vi";
+    public string PreferredTheme { get; set; } = "light";
+    public bool ReceiveSystem { get; set; }
+    public bool ReceiveAcademic { get; set; }
+    public bool ReceiveGoal { get; set; }
+    public bool ReceiveGpaMilestone { get; set; }
+    public DateTime CreatedAt { get; set; }
+    public DateTime UpdatedAt { get; set; }
+}
 
-public record SyncAcademicGoalDto(
-    Guid Id,
-    Guid StudentProfileId,
-    decimal TargetCumulativeGpa10,
-    decimal TargetCumulativeGpa4,
-    string? Notes,
-    bool IsAchieved,
-    bool IsActive,
-    DateTime CreatedAt
-);
+public class SyncAcademicGoalDto
+{
+    public Guid Id { get; set; }
+    public Guid StudentProfileId { get; set; }
+    public decimal TargetCumulativeGpa10 { get; set; }
+    public decimal TargetCumulativeGpa4 { get; set; }
+    public string? Notes { get; set; }
+    public bool IsAchieved { get; set; }
+    public bool IsActive { get; set; }
+    public DateTime CreatedAt { get; set; }
+}
 
-public record SyncNotificationDto(
-    Guid Id,
-    Guid UserId,
-    string Title,
-    string Message,
-    string Type,
-    bool IsRead,
-    bool IsBroadcast,
-    Guid? SenderId,
-    string? RecipientName,
-    DateTime CreatedAt
-);
+public class SyncNotificationDto
+{
+    public Guid Id { get; set; }
+    public Guid UserId { get; set; }
+    public string Title { get; set; } = string.Empty;
+    public string Message { get; set; } = string.Empty;
+    public string Type { get; set; } = string.Empty;
+    public bool IsRead { get; set; }
+    public bool IsBroadcast { get; set; }
+    public Guid? SenderId { get; set; }
+    public string? RecipientName { get; set; }
+    public DateTime CreatedAt { get; set; }
+}
 
-public record SyncDataCommand(
-    List<SyncUserDto> Users,
-    List<SyncStudentProfileDto> StudentProfiles,
-    List<SyncAcademicYearDto> AcademicYears,
-    List<SyncSemesterDto> Semesters,
-    List<SyncCourseDto> Courses,
-    List<SyncScoreDto> Scores,
-    List<SyncScoreAuditLogDto> ScoreAuditLogs,
-    List<SyncUserSettingDto> UserSettings,
-    List<SyncAcademicGoalDto> AcademicGoals,
-    List<SyncNotificationDto> Notifications
-) : IRequest<SyncDataResultDto>;
+public class SyncDataCommand : IRequest<SyncDataResultDto>
+{
+    public List<SyncUserDto> Users { get; set; } = new();
+    public List<SyncStudentProfileDto> StudentProfiles { get; set; } = new();
+    public List<SyncAcademicYearDto> AcademicYears { get; set; } = new();
+    public List<SyncSemesterDto> Semesters { get; set; } = new();
+    public List<SyncCourseDto> Courses { get; set; } = new();
+    public List<SyncScoreDto> Scores { get; set; } = new();
+    public List<SyncScoreAuditLogDto> ScoreAuditLogs { get; set; } = new();
+    public List<SyncUserSettingDto> UserSettings { get; set; } = new();
+    public List<SyncAcademicGoalDto> AcademicGoals { get; set; } = new();
+    public List<SyncNotificationDto> Notifications { get; set; } = new();
+}
 
 public record SyncDataResultDto(
     int UsersSynced,
