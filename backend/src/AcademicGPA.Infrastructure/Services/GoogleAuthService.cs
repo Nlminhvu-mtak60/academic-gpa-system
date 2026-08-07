@@ -79,7 +79,9 @@ public class GoogleAuthService : IGoogleAuthService
 
             if (!response.IsSuccessStatusCode)
             {
-                _logger.LogWarning("Google ID token verification failed with status: {StatusCode}", response.StatusCode);
+                var errorBody = await response.Content.ReadAsStringAsync();
+                _logger.LogWarning("Google ID token verification failed with status: {StatusCode}. Response: {ErrorBody}. Token length: {TokenLength}", 
+                    response.StatusCode, errorBody, idToken?.Length ?? 0);
                 return null;
             }
 
