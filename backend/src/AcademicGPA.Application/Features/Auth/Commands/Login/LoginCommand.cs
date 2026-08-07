@@ -51,11 +51,13 @@ public class LoginCommandHandler : IRequestHandler<LoginCommand, AuthResponseDto
     {
         var normalizedEmail = request.Email.Trim().ToLower();
 
-        // 1. Fetch user by email including active refresh tokens ignoring query filters
-        var user = await _context.Users
+        // 1. Fetch all users in memory ignoring query filters for bulletproof case-insensitive email matching
+        var allUsers = await _context.Users
             .IgnoreQueryFilters()
             .Include(u => u.RefreshTokens)
-            .FirstOrDefaultAsync(u => u.Email.Trim().ToLower() == normalizedEmail, cancellationToken);
+            .ToListAsync(cancellationToken);
+
+        var user = allUsers.FirstOrDefault(u => string.Equals(u.Email.Trim(), normalizedEmail, StringComparison.OrdinalIgnoreCase));
 
         // 2. Auto-create admin user on login attempt if missing
         if (user == null && normalizedEmail == "admin@gpa.domain.com" && request.Password.Trim() == "Admin@123456")
