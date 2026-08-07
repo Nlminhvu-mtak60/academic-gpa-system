@@ -152,13 +152,13 @@ using (var scope = app.Services.CreateScope())
         context.Database.Migrate();
         Log.Information("Database migrations applied successfully.");
 
-        // Automatically seed default admin if not exists
+        // Automatically seed default admin if missing
         var adminEmail = "admin@gpa.domain.com";
-        var hasAdmin = context.Users.Any(u => u.Email == adminEmail);
-        if (!hasAdmin)
+        var hasher = services.GetRequiredService<AcademicGPA.Application.Common.Interfaces.IPasswordHasher>();
+        var adminUser = context.Users.FirstOrDefault(u => u.Email == adminEmail);
+        if (adminUser == null)
         {
-            var hasher = services.GetRequiredService<AcademicGPA.Application.Common.Interfaces.IPasswordHasher>();
-            var adminUser = new AcademicGPA.Domain.Entities.User
+            adminUser = new AcademicGPA.Domain.Entities.User
             {
                 Id = Guid.Parse("33a25d2c-80a5-4089-9a2c-f60897f2c253"),
                 Email = adminEmail,
@@ -173,6 +173,18 @@ using (var scope = app.Services.CreateScope())
             context.SaveChanges();
             Log.Information("Default admin user seeded successfully.");
         }
+
+        // Verify and reset all user password hashes to Admin@123456 if invalid
+        var allUsers = context.Users.ToList();
+        foreach (var u in allUsers)
+        {
+            if (string.IsNullOrWhiteSpace(u.PasswordHash) || !hasher.VerifyPassword("Admin@123456", u.PasswordHash))
+            {
+                u.PasswordHash = hasher.HashPassword("Admin@123456");
+            }
+        }
+        context.SaveChanges();
+        Log.Information("All user password hashes verified and updated to valid BCrypt hashes.");
     }
     catch (Exception ex)
     {

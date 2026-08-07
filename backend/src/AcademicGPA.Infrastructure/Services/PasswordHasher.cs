@@ -14,11 +14,13 @@ public class PasswordHasher : IPasswordHasher
 
     public bool VerifyPassword(string password, string hashedPassword)
     {
+        if (string.IsNullOrWhiteSpace(hashedPassword)) return false;
+
         try
         {
             return BCrypt.Net.BCrypt.Verify(password, hashedPassword);
         }
-        catch (BcryptAuthenticationException)
+        catch (Exception)
         {
             return false;
         }
