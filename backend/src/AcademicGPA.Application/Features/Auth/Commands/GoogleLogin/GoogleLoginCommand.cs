@@ -49,15 +49,27 @@ public class GoogleLoginCommandHandler : IRequestHandler<GoogleLoginCommand, Aut
     {
         // 1. Verify token with Google identity APIs
         var googleUser = await _googleAuthService.VerifyTokenAsync(request.IdToken);
-        if (googleUser == null)
+        if (googleUser == null || string.IsNullOrWhiteSpace(googleUser.Email))
         {
-            throw new ForbiddenException("Google authentication verification failed.");
+            throw new ForbiddenException("Google authentication verification failed or email is missing.");
         }
 
-        // 2. Query user by GoogleId or Email
+        var cleanEmail = googleUser.Email.Trim().ToLower();
+        var googleId = string.IsNullOrWhiteSpace(googleUser.GoogleId) ? null : googleUser.GoogleId.Trim();
+
+        var firstName = (string.IsNullOrWhiteSpace(googleUser.FirstName) ? "Google" : googleUser.FirstName.Trim());
+        if (firstName.Length > 50) firstName = firstName[..50];
+
+        var lastName = (string.IsNullOrWhiteSpace(googleUser.LastName) ? "User" : googleUser.LastName.Trim());
+        if (lastName.Length > 50) lastName = lastName[..50];
+
+        // 2. Query user by GoogleId (if valid) OR Email
         var user = await _context.Users
             .Include(u => u.RefreshTokens)
-            .FirstOrDefaultAsync(u => u.GoogleId == googleUser.GoogleId || u.Email.ToLower() == googleUser.Email.ToLower(), cancellationToken);
+            .FirstOrDefaultAsync(u => 
+                (!string.IsNullOrEmpty(googleId) && u.GoogleId == googleId) || 
+                u.Email.ToLower() == cleanEmail, 
+                cancellationToken);
 
         if (user != null)
         {
@@ -66,10 +78,10 @@ public class GoogleLoginCommandHandler : IRequestHandler<GoogleLoginCommand, Aut
                 throw new ForbiddenException("Your account is locked or inactive.");
             }
 
-            // Update GoogleId if matching email found but GoogleId not linked yet
-            if (string.IsNullOrEmpty(user.GoogleId))
+            // Link GoogleId if matching email found but GoogleId not linked yet
+            if (string.IsNullOrEmpty(user.GoogleId) && !string.IsNullOrEmpty(googleId))
             {
-                user.GoogleId = googleUser.GoogleId;
+                user.GoogleId = googleId;
             }
 
             if (!user.IsActive)
@@ -77,25 +89,24 @@ public class GoogleLoginCommandHandler : IRequestHandler<GoogleLoginCommand, Aut
                 throw new ForbiddenException("Your account is locked. Please contact support.");
             }
 
-            // Sync verification status if Google says so
+            // Sync verification status if Google verified user email
             user.IsEmailVerified = true;
         }
         else
         {
             // 3. User does not exist, automatically register them
-            // Create a randomized secure password hash as fallback
             var randomPass = Guid.NewGuid().ToString("N") + Guid.NewGuid().ToString("N");
             var hashedFallback = _passwordHasher.HashPassword(randomPass);
 
             user = new User
             {
-                Email = googleUser.Email.ToLower(),
+                Email = cleanEmail,
                 PasswordHash = hashedFallback,
-                FirstName = googleUser.FirstName,
-                LastName = googleUser.LastName,
-                Role = googleUser.Email.Contains("admin") ? UserRole.Admin : UserRole.Student,
-                GoogleId = googleUser.GoogleId,
-                IsEmailVerified = true, // Google verifies user emails
+                FirstName = firstName,
+                LastName = lastName,
+                Role = cleanEmail.Contains("admin") ? UserRole.Admin : UserRole.Student,
+                GoogleId = googleId,
+                IsEmailVerified = true,
                 IsActive = true
             };
 
@@ -106,17 +117,14 @@ public class GoogleLoginCommandHandler : IRequestHandler<GoogleLoginCommand, Aut
         var accessToken = _jwtService.GenerateAccessToken(user);
         var refreshToken = _jwtService.GenerateRefreshToken(request.IpAddress);
 
-        // Revoke active sessions safely
-        if (user.RefreshTokens != null)
-        {
-            foreach (var token in user.RefreshTokens.Where(t => t.IsActive))
-            {
-                token.RevokedAt = DateTime.UtcNow;
-            }
-        }
-        else
+        if (user.RefreshTokens == null)
         {
             user.RefreshTokens = new List<AcademicGPA.Domain.Entities.RefreshToken>();
+        }
+
+        foreach (var token in user.RefreshTokens.Where(t => t.IsActive))
+        {
+            token.RevokedAt = DateTime.UtcNow;
         }
 
         refreshToken.UserId = user.Id;
@@ -127,10 +135,17 @@ public class GoogleLoginCommandHandler : IRequestHandler<GoogleLoginCommand, Aut
         // 5. Save changes
         await _context.SaveChangesAsync(cancellationToken);
 
-        // Audit successful login
-        await _adminService.LogActivityAsync(user.Id, "Login (Google)", request.IpAddress, cancellationToken);
+        // 6. Audit successful login safely
+        try
+        {
+            await _adminService.LogActivityAsync(user.Id, "Login (Google)", request.IpAddress, cancellationToken);
+        }
+        catch
+        {
+            // Do not break user login flow if activity logging fails
+        }
 
-        // 6. Map to DTOs
+        // 7. Map to DTOs
         var userDto = new UserDto(
             user.Id,
             user.Email,

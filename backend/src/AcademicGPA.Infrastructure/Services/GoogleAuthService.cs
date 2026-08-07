@@ -104,11 +104,29 @@ public class GoogleAuthService : IGoogleAuthService
                 }
             }
 
+            var firstName = payload.GivenName;
+            var lastName = payload.FamilyName;
+
+            if (string.IsNullOrWhiteSpace(firstName) && !string.IsNullOrWhiteSpace(payload.Name))
+            {
+                var parts = payload.Name.Trim().Split(' ');
+                if (parts.Length > 1)
+                {
+                    firstName = string.Join(" ", parts.Take(parts.Length - 1));
+                    lastName = parts.Last();
+                }
+                else
+                {
+                    firstName = payload.Name;
+                    lastName = "User";
+                }
+            }
+
             return new GoogleUserInfo(
-                GoogleId: payload.Sub,
-                Email: payload.Email,
-                FirstName: payload.GivenName ?? "Google",
-                LastName: payload.FamilyName ?? "User"
+                GoogleId: payload.Sub ?? string.Empty,
+                Email: payload.Email ?? string.Empty,
+                FirstName: string.IsNullOrWhiteSpace(firstName) ? "Google" : firstName,
+                LastName: string.IsNullOrWhiteSpace(lastName) ? "User" : lastName
             );
         }
         catch (Exception ex)
@@ -128,6 +146,9 @@ public class GoogleAuthService : IGoogleAuthService
 
         [JsonPropertyName("aud")]
         public string Aud { get; set; } = string.Empty;
+
+        [JsonPropertyName("name")]
+        public string? Name { get; set; }
 
         [JsonPropertyName("given_name")]
         public string? GivenName { get; set; }
