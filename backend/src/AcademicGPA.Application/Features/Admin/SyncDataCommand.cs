@@ -192,6 +192,12 @@ public class SyncDataCommandHandler : IRequestHandler<SyncDataCommand, SyncDataR
         _context = context;
     }
 
+    private static DateTime EnsureUtc(DateTime dt) =>
+        dt == default ? DateTime.UtcNow : DateTime.SpecifyKind(dt, DateTimeKind.Utc);
+
+    private static DateTime? EnsureUtc(DateTime? dt) =>
+        dt.HasValue ? DateTime.SpecifyKind(dt.Value, DateTimeKind.Utc) : null;
+
     public async Task<SyncDataResultDto> Handle(SyncDataCommand request, CancellationToken cancellationToken)
     {
         int usersCount = 0, profilesCount = 0, yearsCount = 0, semestersCount = 0, coursesCount = 0;
@@ -224,10 +230,10 @@ public class SyncDataCommandHandler : IRequestHandler<SyncDataCommand, SyncDataR
                         AvatarUrl = uDto.AvatarUrl,
                         PreferredLanguage = string.IsNullOrWhiteSpace(uDto.PreferredLanguage) ? "vi" : uDto.PreferredLanguage,
                         PreferredTheme = string.IsNullOrWhiteSpace(uDto.PreferredTheme) ? "light" : uDto.PreferredTheme,
-                        CreatedAt = uDto.CreatedAt == default ? DateTime.UtcNow : uDto.CreatedAt,
-                        UpdatedAt = uDto.UpdatedAt == default ? DateTime.UtcNow : uDto.UpdatedAt,
-                        LastLoginAt = uDto.LastLoginAt,
-                        LockedAt = uDto.LockedAt,
+                        CreatedAt = EnsureUtc(uDto.CreatedAt),
+                        UpdatedAt = EnsureUtc(uDto.UpdatedAt),
+                        LastLoginAt = EnsureUtc(uDto.LastLoginAt),
+                        LockedAt = EnsureUtc(uDto.LockedAt),
                         LockReason = uDto.LockReason,
                         IsDeleted = uDto.IsDeleted,
                         ForcePasswordChange = uDto.ForcePasswordChange
@@ -247,6 +253,9 @@ public class SyncDataCommandHandler : IRequestHandler<SyncDataCommand, SyncDataR
                     user.PreferredLanguage = uDto.PreferredLanguage;
                     user.PreferredTheme = uDto.PreferredTheme;
                     user.UpdatedAt = DateTime.UtcNow;
+                    user.LastLoginAt = EnsureUtc(uDto.LastLoginAt);
+                    user.LockedAt = EnsureUtc(uDto.LockedAt);
+                    user.LockReason = uDto.LockReason;
                 }
                 usersCount++;
             }
@@ -314,13 +323,13 @@ public class SyncDataCommandHandler : IRequestHandler<SyncDataCommand, SyncDataR
                         YearName = ayDto.YearName,
                         StartYear = ayDto.StartYear,
                         EndYear = ayDto.EndYear,
-                        StartDate = ayDto.StartDate == default ? DateTime.UtcNow : ayDto.StartDate,
-                        EndDate = ayDto.EndDate == default ? DateTime.UtcNow : ayDto.EndDate,
+                        StartDate = EnsureUtc(ayDto.StartDate),
+                        EndDate = EnsureUtc(ayDto.EndDate),
                         Status = string.IsNullOrWhiteSpace(ayDto.Status) ? "Completed" : ayDto.Status,
                         IsCurrent = ayDto.IsCurrent,
                         SortOrder = ayDto.SortOrder,
                         IsDeleted = ayDto.IsDeleted,
-                        CreatedAt = ayDto.CreatedAt == default ? DateTime.UtcNow : ayDto.CreatedAt
+                        CreatedAt = EnsureUtc(ayDto.CreatedAt)
                     };
                     _context.AcademicYears.Add(ay);
                 }
@@ -329,8 +338,8 @@ public class SyncDataCommandHandler : IRequestHandler<SyncDataCommand, SyncDataR
                     ay.YearName = ayDto.YearName;
                     ay.StartYear = ayDto.StartYear;
                     ay.EndYear = ayDto.EndYear;
-                    ay.StartDate = ayDto.StartDate;
-                    ay.EndDate = ayDto.EndDate;
+                    ay.StartDate = EnsureUtc(ayDto.StartDate);
+                    ay.EndDate = EnsureUtc(ayDto.EndDate);
                     ay.Status = ayDto.Status;
                     ay.IsCurrent = ayDto.IsCurrent;
                     ay.SortOrder = ayDto.SortOrder;
@@ -367,7 +376,7 @@ public class SyncDataCommandHandler : IRequestHandler<SyncDataCommand, SyncDataR
                         ImportedCredits = sDto.ImportedCredits,
                         ImportedGpa10 = sDto.ImportedGpa10,
                         ImportedGpa4 = sDto.ImportedGpa4,
-                        CreatedAt = sDto.CreatedAt == default ? DateTime.UtcNow : sDto.CreatedAt
+                        CreatedAt = EnsureUtc(sDto.CreatedAt)
                     };
                     _context.Semesters.Add(sem);
                 }
@@ -411,8 +420,8 @@ public class SyncDataCommandHandler : IRequestHandler<SyncDataCommand, SyncDataR
                         IsRetake = cDto.IsRetake,
                         OriginalCourseId = cDto.OriginalCourseId,
                         IsDeleted = cDto.IsDeleted,
-                        CreatedAt = cDto.CreatedAt == default ? DateTime.UtcNow : cDto.CreatedAt,
-                        UpdatedAt = cDto.UpdatedAt == default ? DateTime.UtcNow : cDto.UpdatedAt
+                        CreatedAt = EnsureUtc(cDto.CreatedAt),
+                        UpdatedAt = EnsureUtc(cDto.UpdatedAt)
                     };
                     _context.Courses.Add(c);
                 }
@@ -457,8 +466,8 @@ public class SyncDataCommandHandler : IRequestHandler<SyncDataCommand, SyncDataR
                         Gpa4Value = scDto.Gpa4Value,
                         AcademicClassification = scDto.AcademicClassification,
                         IsPass = scDto.IsPass,
-                        CreatedAt = scDto.CreatedAt == default ? DateTime.UtcNow : scDto.CreatedAt,
-                        UpdatedAt = scDto.UpdatedAt == default ? DateTime.UtcNow : scDto.UpdatedAt
+                        CreatedAt = EnsureUtc(scDto.CreatedAt),
+                        UpdatedAt = EnsureUtc(scDto.UpdatedAt)
                     };
                     _context.Scores.Add(sc);
                 }
@@ -500,7 +509,7 @@ public class SyncDataCommandHandler : IRequestHandler<SyncDataCommand, SyncDataR
                         FieldChanged = logDto.FieldChanged,
                         OldValue = logDto.OldValue,
                         NewValue = logDto.NewValue,
-                        ChangedAt = logDto.ChangedAt == default ? DateTime.UtcNow : logDto.ChangedAt
+                        ChangedAt = EnsureUtc(logDto.ChangedAt)
                     };
                     _context.ScoreAuditLogs.Add(log);
                 }
@@ -533,8 +542,8 @@ public class SyncDataCommandHandler : IRequestHandler<SyncDataCommand, SyncDataR
                         ReceiveAcademic = setDto.ReceiveAcademic,
                         ReceiveGoal = setDto.ReceiveGoal,
                         ReceiveGpaMilestone = setDto.ReceiveGpaMilestone,
-                        CreatedAt = setDto.CreatedAt == default ? DateTime.UtcNow : setDto.CreatedAt,
-                        UpdatedAt = setDto.UpdatedAt == default ? DateTime.UtcNow : setDto.UpdatedAt
+                        CreatedAt = EnsureUtc(setDto.CreatedAt),
+                        UpdatedAt = EnsureUtc(setDto.UpdatedAt)
                     };
                     _context.UserSettings.Add(us);
                 }
@@ -566,7 +575,7 @@ public class SyncDataCommandHandler : IRequestHandler<SyncDataCommand, SyncDataR
                         Notes = gDto.Notes,
                         IsAchieved = gDto.IsAchieved,
                         IsActive = gDto.IsActive,
-                        CreatedAt = gDto.CreatedAt == default ? DateTime.UtcNow : gDto.CreatedAt
+                        CreatedAt = EnsureUtc(gDto.CreatedAt)
                     };
                     _context.AcademicGoals.Add(goal);
                 }
@@ -600,7 +609,7 @@ public class SyncDataCommandHandler : IRequestHandler<SyncDataCommand, SyncDataR
                         IsBroadcast = nDto.IsBroadcast,
                         SenderId = nDto.SenderId,
                         RecipientName = nDto.RecipientName,
-                        CreatedAt = nDto.CreatedAt == default ? DateTime.UtcNow : nDto.CreatedAt
+                        CreatedAt = EnsureUtc(nDto.CreatedAt)
                     };
                     _context.Notifications.Add(notif);
                 }
