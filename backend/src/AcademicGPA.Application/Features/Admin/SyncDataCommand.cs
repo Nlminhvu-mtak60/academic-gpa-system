@@ -179,7 +179,8 @@ public record SyncDataResultDto(
     int AuditLogsSynced,
     int SettingsSynced,
     int GoalsSynced,
-    int NotificationsSynced
+    int NotificationsSynced,
+    string? ErrorDetail = null
 );
 
 public class SyncDataCommandHandler : IRequestHandler<SyncDataCommand, SyncDataResultDto>
@@ -193,361 +194,424 @@ public class SyncDataCommandHandler : IRequestHandler<SyncDataCommand, SyncDataR
 
     public async Task<SyncDataResultDto> Handle(SyncDataCommand request, CancellationToken cancellationToken)
     {
-        // 1. Sync Users
-        int usersCount = 0;
-        foreach (var uDto in request.Users)
+        int usersCount = 0, profilesCount = 0, yearsCount = 0, semestersCount = 0, coursesCount = 0;
+        int scoresCount = 0, auditCount = 0, settingsCount = 0, goalsCount = 0, notifCount = 0;
+
+        try
         {
-            var user = await _context.Users
-                .IgnoreQueryFilters()
-                .FirstOrDefaultAsync(x => x.Id == uDto.Id || x.Email.ToLower() == uDto.Email.ToLower(), cancellationToken);
-
-            var roleEnum = Enum.TryParse<UserRole>(uDto.Role, true, out var r) ? r : UserRole.Student;
-
-            if (user == null)
+            // 1. Sync Users
+            foreach (var uDto in request.Users)
             {
-                user = new User
+                var user = await _context.Users
+                    .IgnoreQueryFilters()
+                    .FirstOrDefaultAsync(x => x.Id == uDto.Id || x.Email.ToLower() == uDto.Email.ToLower(), cancellationToken);
+
+                var roleEnum = Enum.TryParse<UserRole>(uDto.Role, true, out var r) ? r : UserRole.Student;
+
+                if (user == null)
                 {
-                    Id = uDto.Id,
-                    Email = uDto.Email.ToLower(),
-                    PasswordHash = uDto.PasswordHash,
-                    FirstName = uDto.FirstName,
-                    LastName = uDto.LastName,
-                    Role = roleEnum,
-                    IsActive = uDto.IsActive,
-                    IsEmailVerified = uDto.IsEmailVerified,
-                    GoogleId = uDto.GoogleId,
-                    AvatarUrl = uDto.AvatarUrl,
-                    PreferredLanguage = uDto.PreferredLanguage,
-                    PreferredTheme = uDto.PreferredTheme,
-                    CreatedAt = uDto.CreatedAt,
-                    UpdatedAt = uDto.UpdatedAt,
-                    LastLoginAt = uDto.LastLoginAt,
-                    LockedAt = uDto.LockedAt,
-                    LockReason = uDto.LockReason,
-                    IsDeleted = uDto.IsDeleted,
-                    ForcePasswordChange = uDto.ForcePasswordChange
-                };
-                _context.Users.Add(user);
+                    user = new User
+                    {
+                        Id = uDto.Id,
+                        Email = uDto.Email.ToLower(),
+                        PasswordHash = uDto.PasswordHash,
+                        FirstName = uDto.FirstName,
+                        LastName = uDto.LastName,
+                        Role = roleEnum,
+                        IsActive = uDto.IsActive,
+                        IsEmailVerified = uDto.IsEmailVerified,
+                        GoogleId = uDto.GoogleId,
+                        AvatarUrl = uDto.AvatarUrl,
+                        PreferredLanguage = string.IsNullOrWhiteSpace(uDto.PreferredLanguage) ? "vi" : uDto.PreferredLanguage,
+                        PreferredTheme = string.IsNullOrWhiteSpace(uDto.PreferredTheme) ? "light" : uDto.PreferredTheme,
+                        CreatedAt = uDto.CreatedAt == default ? DateTime.UtcNow : uDto.CreatedAt,
+                        UpdatedAt = uDto.UpdatedAt == default ? DateTime.UtcNow : uDto.UpdatedAt,
+                        LastLoginAt = uDto.LastLoginAt,
+                        LockedAt = uDto.LockedAt,
+                        LockReason = uDto.LockReason,
+                        IsDeleted = uDto.IsDeleted,
+                        ForcePasswordChange = uDto.ForcePasswordChange
+                    };
+                    _context.Users.Add(user);
+                }
+                else
+                {
+                    user.PasswordHash = uDto.PasswordHash;
+                    user.FirstName = uDto.FirstName;
+                    user.LastName = uDto.LastName;
+                    user.Role = roleEnum;
+                    user.IsActive = uDto.IsActive;
+                    user.IsEmailVerified = uDto.IsEmailVerified;
+                    if (!string.IsNullOrEmpty(uDto.GoogleId)) user.GoogleId = uDto.GoogleId;
+                    if (!string.IsNullOrEmpty(uDto.AvatarUrl)) user.AvatarUrl = uDto.AvatarUrl;
+                    user.PreferredLanguage = uDto.PreferredLanguage;
+                    user.PreferredTheme = uDto.PreferredTheme;
+                    user.UpdatedAt = DateTime.UtcNow;
+                }
+                usersCount++;
             }
-            else
-            {
-                user.PasswordHash = uDto.PasswordHash;
-                user.FirstName = uDto.FirstName;
-                user.LastName = uDto.LastName;
-                user.Role = roleEnum;
-                user.IsActive = uDto.IsActive;
-                user.IsEmailVerified = uDto.IsEmailVerified;
-                if (!string.IsNullOrEmpty(uDto.GoogleId)) user.GoogleId = uDto.GoogleId;
-                if (!string.IsNullOrEmpty(uDto.AvatarUrl)) user.AvatarUrl = uDto.AvatarUrl;
-                user.PreferredLanguage = uDto.PreferredLanguage;
-                user.PreferredTheme = uDto.PreferredTheme;
-                user.UpdatedAt = uDto.UpdatedAt;
-            }
-            usersCount++;
+            await _context.SaveChangesAsync(cancellationToken);
         }
-        await _context.SaveChangesAsync(cancellationToken);
-
-        // 2. Sync StudentProfiles
-        int profilesCount = 0;
-        foreach (var spDto in request.StudentProfiles)
+        catch (Exception ex)
         {
-            var profile = await _context.StudentProfiles
-                .FirstOrDefaultAsync(x => x.Id == spDto.Id || x.UserId == spDto.UserId, cancellationToken);
-
-            if (profile == null)
-            {
-                profile = new StudentProfile
-                {
-                    Id = spDto.Id,
-                    UserId = spDto.UserId,
-                    StudentCode = spDto.StudentCode,
-                    UniversityName = spDto.UniversityName,
-                    MajorName = spDto.MajorName,
-                    EnrollmentYear = spDto.EnrollmentYear,
-                    TotalRequiredCredits = spDto.TotalRequiredCredits
-                };
-                _context.StudentProfiles.Add(profile);
-            }
-            else
-            {
-                profile.StudentCode = spDto.StudentCode;
-                profile.UniversityName = spDto.UniversityName;
-                profile.MajorName = spDto.MajorName;
-                profile.EnrollmentYear = spDto.EnrollmentYear;
-                profile.TotalRequiredCredits = spDto.TotalRequiredCredits;
-            }
-            profilesCount++;
+            return new SyncDataResultDto(usersCount, profilesCount, yearsCount, semestersCount, coursesCount, scoresCount, auditCount, settingsCount, goalsCount, notifCount, $"UsersStep: {ex.Message} | {ex.InnerException?.Message}");
         }
-        await _context.SaveChangesAsync(cancellationToken);
 
-        // 3. Sync AcademicYears
-        int yearsCount = 0;
-        foreach (var ayDto in request.AcademicYears)
+        try
         {
-            var ay = await _context.AcademicYears
-                .IgnoreQueryFilters()
-                .FirstOrDefaultAsync(x => x.Id == ayDto.Id, cancellationToken);
-
-            if (ay == null)
+            // 2. Sync StudentProfiles
+            foreach (var spDto in request.StudentProfiles)
             {
-                ay = new AcademicYear
+                var profile = await _context.StudentProfiles
+                    .FirstOrDefaultAsync(x => x.Id == spDto.Id || x.UserId == spDto.UserId, cancellationToken);
+
+                if (profile == null)
                 {
-                    Id = ayDto.Id,
-                    StudentProfileId = ayDto.StudentProfileId,
-                    YearName = ayDto.YearName,
-                    StartYear = ayDto.StartYear,
-                    EndYear = ayDto.EndYear,
-                    StartDate = ayDto.StartDate,
-                    EndDate = ayDto.EndDate,
-                    Status = ayDto.Status,
-                    IsCurrent = ayDto.IsCurrent,
-                    SortOrder = ayDto.SortOrder,
-                    IsDeleted = ayDto.IsDeleted,
-                    CreatedAt = ayDto.CreatedAt
-                };
-                _context.AcademicYears.Add(ay);
+                    profile = new StudentProfile
+                    {
+                        Id = spDto.Id,
+                        UserId = spDto.UserId,
+                        StudentCode = spDto.StudentCode,
+                        UniversityName = spDto.UniversityName,
+                        MajorName = spDto.MajorName,
+                        EnrollmentYear = spDto.EnrollmentYear,
+                        TotalRequiredCredits = spDto.TotalRequiredCredits
+                    };
+                    _context.StudentProfiles.Add(profile);
+                }
+                else
+                {
+                    profile.StudentCode = spDto.StudentCode;
+                    profile.UniversityName = spDto.UniversityName;
+                    profile.MajorName = spDto.MajorName;
+                    profile.EnrollmentYear = spDto.EnrollmentYear;
+                    profile.TotalRequiredCredits = spDto.TotalRequiredCredits;
+                }
+                profilesCount++;
             }
-            else
-            {
-                ay.YearName = ayDto.YearName;
-                ay.StartYear = ayDto.StartYear;
-                ay.EndYear = ayDto.EndYear;
-                ay.StartDate = ayDto.StartDate;
-                ay.EndDate = ayDto.EndDate;
-                ay.Status = ayDto.Status;
-                ay.IsCurrent = ayDto.IsCurrent;
-                ay.SortOrder = ayDto.SortOrder;
-                ay.IsDeleted = ayDto.IsDeleted;
-            }
-            yearsCount++;
+            await _context.SaveChangesAsync(cancellationToken);
         }
-        await _context.SaveChangesAsync(cancellationToken);
-
-        // 4. Sync Semesters
-        int semestersCount = 0;
-        foreach (var sDto in request.Semesters)
+        catch (Exception ex)
         {
-            var sem = await _context.Semesters
-                .IgnoreQueryFilters()
-                .FirstOrDefaultAsync(x => x.Id == sDto.Id, cancellationToken);
-
-            if (sem == null)
-            {
-                sem = new Semester
-                {
-                    Id = sDto.Id,
-                    AcademicYearId = sDto.AcademicYearId,
-                    SemesterName = sDto.SemesterName,
-                    SortOrder = sDto.SortOrder,
-                    IsDeleted = sDto.IsDeleted,
-                    IsImported = sDto.IsImported,
-                    ImportedCredits = sDto.ImportedCredits,
-                    ImportedGpa10 = sDto.ImportedGpa10,
-                    ImportedGpa4 = sDto.ImportedGpa4,
-                    CreatedAt = sDto.CreatedAt
-                };
-                _context.Semesters.Add(sem);
-            }
-            else
-            {
-                sem.SemesterName = sDto.SemesterName;
-                sem.SortOrder = sDto.SortOrder;
-                sem.IsDeleted = sDto.IsDeleted;
-                sem.IsImported = sDto.IsImported;
-                sem.ImportedCredits = sDto.ImportedCredits;
-                sem.ImportedGpa10 = sDto.ImportedGpa10;
-                sem.ImportedGpa4 = sDto.ImportedGpa4;
-            }
-            semestersCount++;
+            return new SyncDataResultDto(usersCount, profilesCount, yearsCount, semestersCount, coursesCount, scoresCount, auditCount, settingsCount, goalsCount, notifCount, $"ProfilesStep: {ex.Message} | {ex.InnerException?.Message}");
         }
-        await _context.SaveChangesAsync(cancellationToken);
 
-        // 5. Sync Courses
-        int coursesCount = 0;
-        foreach (var cDto in request.Courses)
+        try
         {
-            var c = await _context.Courses
-                .IgnoreQueryFilters()
-                .FirstOrDefaultAsync(x => x.Id == cDto.Id, cancellationToken);
-
-            if (c == null)
+            // 3. Sync AcademicYears
+            foreach (var ayDto in request.AcademicYears)
             {
-                c = new Course
+                var ay = await _context.AcademicYears
+                    .IgnoreQueryFilters()
+                    .FirstOrDefaultAsync(x => x.Id == ayDto.Id, cancellationToken);
+
+                if (ay == null)
                 {
-                    Id = cDto.Id,
-                    SemesterId = cDto.SemesterId,
-                    CourseCode = cDto.CourseCode,
-                    CourseName = cDto.CourseName,
-                    Credits = cDto.Credits,
-                    IsRetake = cDto.IsRetake,
-                    OriginalCourseId = cDto.OriginalCourseId,
-                    IsDeleted = cDto.IsDeleted,
-                    CreatedAt = cDto.CreatedAt,
-                    UpdatedAt = cDto.UpdatedAt
-                };
-                _context.Courses.Add(c);
+                    ay = new AcademicYear
+                    {
+                        Id = ayDto.Id,
+                        StudentProfileId = ayDto.StudentProfileId,
+                        YearName = ayDto.YearName,
+                        StartYear = ayDto.StartYear,
+                        EndYear = ayDto.EndYear,
+                        StartDate = ayDto.StartDate == default ? DateTime.UtcNow : ayDto.StartDate,
+                        EndDate = ayDto.EndDate == default ? DateTime.UtcNow : ayDto.EndDate,
+                        Status = string.IsNullOrWhiteSpace(ayDto.Status) ? "Completed" : ayDto.Status,
+                        IsCurrent = ayDto.IsCurrent,
+                        SortOrder = ayDto.SortOrder,
+                        IsDeleted = ayDto.IsDeleted,
+                        CreatedAt = ayDto.CreatedAt == default ? DateTime.UtcNow : ayDto.CreatedAt
+                    };
+                    _context.AcademicYears.Add(ay);
+                }
+                else
+                {
+                    ay.YearName = ayDto.YearName;
+                    ay.StartYear = ayDto.StartYear;
+                    ay.EndYear = ayDto.EndYear;
+                    ay.StartDate = ayDto.StartDate;
+                    ay.EndDate = ayDto.EndDate;
+                    ay.Status = ayDto.Status;
+                    ay.IsCurrent = ayDto.IsCurrent;
+                    ay.SortOrder = ayDto.SortOrder;
+                    ay.IsDeleted = ayDto.IsDeleted;
+                }
+                yearsCount++;
             }
-            else
-            {
-                c.CourseCode = cDto.CourseCode;
-                c.CourseName = cDto.CourseName;
-                c.Credits = cDto.Credits;
-                c.IsRetake = cDto.IsRetake;
-                c.OriginalCourseId = cDto.OriginalCourseId;
-                c.IsDeleted = cDto.IsDeleted;
-                c.UpdatedAt = cDto.UpdatedAt;
-            }
-            coursesCount++;
+            await _context.SaveChangesAsync(cancellationToken);
         }
-        await _context.SaveChangesAsync(cancellationToken);
-
-        // 6. Sync Scores
-        int scoresCount = 0;
-        foreach (var scDto in request.Scores)
+        catch (Exception ex)
         {
-            var sc = await _context.Scores
-                .FirstOrDefaultAsync(x => x.Id == scDto.Id || x.CourseId == scDto.CourseId, cancellationToken);
-
-            if (sc == null)
-            {
-                sc = new Score
-                {
-                    Id = scDto.Id,
-                    CourseId = scDto.CourseId,
-                    AttendanceScore = scDto.AttendanceScore,
-                    ContinuousScore = scDto.ContinuousScore,
-                    FinalExamScore = scDto.FinalExamScore,
-                    CourseScore = scDto.CourseScore,
-                    LetterGrade = scDto.LetterGrade,
-                    Gpa4Value = scDto.Gpa4Value,
-                    AcademicClassification = scDto.AcademicClassification,
-                    IsPass = scDto.IsPass,
-                    CreatedAt = scDto.CreatedAt,
-                    UpdatedAt = scDto.UpdatedAt
-                };
-                _context.Scores.Add(sc);
-            }
-            else
-            {
-                sc.AttendanceScore = scDto.AttendanceScore;
-                sc.ContinuousScore = scDto.ContinuousScore;
-                sc.FinalExamScore = scDto.FinalExamScore;
-                sc.CourseScore = scDto.CourseScore;
-                sc.LetterGrade = scDto.LetterGrade;
-                sc.Gpa4Value = scDto.Gpa4Value;
-                sc.AcademicClassification = scDto.AcademicClassification;
-                sc.IsPass = scDto.IsPass;
-                sc.UpdatedAt = scDto.UpdatedAt;
-            }
-            scoresCount++;
+            return new SyncDataResultDto(usersCount, profilesCount, yearsCount, semestersCount, coursesCount, scoresCount, auditCount, settingsCount, goalsCount, notifCount, $"YearsStep: {ex.Message} | {ex.InnerException?.Message}");
         }
-        await _context.SaveChangesAsync(cancellationToken);
 
-        // 7. Sync ScoreAuditLogs
-        int auditCount = 0;
-        foreach (var logDto in request.ScoreAuditLogs)
+        try
         {
-            var log = await _context.ScoreAuditLogs
-                .FirstOrDefaultAsync(x => x.Id == logDto.Id, cancellationToken);
-
-            if (log == null)
+            // 4. Sync Semesters
+            foreach (var sDto in request.Semesters)
             {
-                log = new ScoreAuditLog
-                {
-                    Id = logDto.Id,
-                    CourseId = logDto.CourseId,
-                    FieldChanged = logDto.FieldChanged,
-                    OldValue = logDto.OldValue,
-                    NewValue = logDto.NewValue,
-                    ChangedAt = logDto.ChangedAt
-                };
-                _context.ScoreAuditLogs.Add(log);
-            }
-            auditCount++;
-        }
-        await _context.SaveChangesAsync(cancellationToken);
+                var sem = await _context.Semesters
+                    .IgnoreQueryFilters()
+                    .FirstOrDefaultAsync(x => x.Id == sDto.Id, cancellationToken);
 
-        // 8. Sync UserSettings
-        int settingsCount = 0;
-        foreach (var setDto in request.UserSettings)
+                if (sem == null)
+                {
+                    sem = new Semester
+                    {
+                        Id = sDto.Id,
+                        AcademicYearId = sDto.AcademicYearId,
+                        SemesterName = sDto.SemesterName,
+                        SortOrder = sDto.SortOrder,
+                        IsDeleted = sDto.IsDeleted,
+                        IsImported = sDto.IsImported,
+                        ImportedCredits = sDto.ImportedCredits,
+                        ImportedGpa10 = sDto.ImportedGpa10,
+                        ImportedGpa4 = sDto.ImportedGpa4,
+                        CreatedAt = sDto.CreatedAt == default ? DateTime.UtcNow : sDto.CreatedAt
+                    };
+                    _context.Semesters.Add(sem);
+                }
+                else
+                {
+                    sem.SemesterName = sDto.SemesterName;
+                    sem.SortOrder = sDto.SortOrder;
+                    sem.IsDeleted = sDto.IsDeleted;
+                    sem.IsImported = sDto.IsImported;
+                    sem.ImportedCredits = sDto.ImportedCredits;
+                    sem.ImportedGpa10 = sDto.ImportedGpa10;
+                    sem.ImportedGpa4 = sDto.ImportedGpa4;
+                }
+                semestersCount++;
+            }
+            await _context.SaveChangesAsync(cancellationToken);
+        }
+        catch (Exception ex)
         {
-            var us = await _context.UserSettings
-                .FirstOrDefaultAsync(x => x.Id == setDto.Id || x.UserId == setDto.UserId, cancellationToken);
-
-            if (us == null)
-            {
-                us = new UserSettings
-                {
-                    Id = setDto.Id,
-                    UserId = setDto.UserId,
-                    PreferredLanguage = setDto.PreferredLanguage,
-                    PreferredTheme = setDto.PreferredTheme,
-                    ReceiveSystem = setDto.ReceiveSystem,
-                    ReceiveAcademic = setDto.ReceiveAcademic,
-                    ReceiveGoal = setDto.ReceiveGoal,
-                    ReceiveGpaMilestone = setDto.ReceiveGpaMilestone,
-                    CreatedAt = setDto.CreatedAt,
-                    UpdatedAt = setDto.UpdatedAt
-                };
-                _context.UserSettings.Add(us);
-            }
-            settingsCount++;
+            return new SyncDataResultDto(usersCount, profilesCount, yearsCount, semestersCount, coursesCount, scoresCount, auditCount, settingsCount, goalsCount, notifCount, $"SemestersStep: {ex.Message} | {ex.InnerException?.Message}");
         }
-        await _context.SaveChangesAsync(cancellationToken);
 
-        // 9. Sync AcademicGoals
-        int goalsCount = 0;
-        foreach (var gDto in request.AcademicGoals)
+        try
         {
-            var goal = await _context.AcademicGoals
-                .FirstOrDefaultAsync(x => x.Id == gDto.Id, cancellationToken);
-
-            if (goal == null)
+            // 5. Sync Courses
+            foreach (var cDto in request.Courses)
             {
-                goal = new AcademicGoal
-                {
-                    Id = gDto.Id,
-                    StudentProfileId = gDto.StudentProfileId,
-                    TargetCumulativeGpa10 = gDto.TargetCumulativeGpa10,
-                    TargetCumulativeGpa4 = gDto.TargetCumulativeGpa4,
-                    Notes = gDto.Notes,
-                    IsAchieved = gDto.IsAchieved,
-                    IsActive = gDto.IsActive,
-                    CreatedAt = gDto.CreatedAt
-                };
-                _context.AcademicGoals.Add(goal);
-            }
-            goalsCount++;
-        }
-        await _context.SaveChangesAsync(cancellationToken);
+                var c = await _context.Courses
+                    .IgnoreQueryFilters()
+                    .FirstOrDefaultAsync(x => x.Id == cDto.Id, cancellationToken);
 
-        // 10. Sync Notifications
-        int notifCount = 0;
-        foreach (var nDto in request.Notifications)
+                if (c == null)
+                {
+                    c = new Course
+                    {
+                        Id = cDto.Id,
+                        SemesterId = cDto.SemesterId,
+                        CourseCode = cDto.CourseCode,
+                        CourseName = cDto.CourseName,
+                        Credits = cDto.Credits,
+                        IsRetake = cDto.IsRetake,
+                        OriginalCourseId = cDto.OriginalCourseId,
+                        IsDeleted = cDto.IsDeleted,
+                        CreatedAt = cDto.CreatedAt == default ? DateTime.UtcNow : cDto.CreatedAt,
+                        UpdatedAt = cDto.UpdatedAt == default ? DateTime.UtcNow : cDto.UpdatedAt
+                    };
+                    _context.Courses.Add(c);
+                }
+                else
+                {
+                    c.CourseCode = cDto.CourseCode;
+                    c.CourseName = cDto.CourseName;
+                    c.Credits = cDto.Credits;
+                    c.IsRetake = cDto.IsRetake;
+                    c.OriginalCourseId = cDto.OriginalCourseId;
+                    c.IsDeleted = cDto.IsDeleted;
+                    c.UpdatedAt = DateTime.UtcNow;
+                }
+                coursesCount++;
+            }
+            await _context.SaveChangesAsync(cancellationToken);
+        }
+        catch (Exception ex)
         {
-            var notif = await _context.Notifications
-                .FirstOrDefaultAsync(x => x.Id == nDto.Id, cancellationToken);
-
-            if (notif == null)
-            {
-                notif = new Notification
-                {
-                    Id = nDto.Id,
-                    UserId = nDto.UserId,
-                    Title = nDto.Title,
-                    Message = nDto.Message,
-                    Type = nDto.Type,
-                    IsRead = nDto.IsRead,
-                    IsBroadcast = nDto.IsBroadcast,
-                    SenderId = nDto.SenderId,
-                    RecipientName = nDto.RecipientName,
-                    CreatedAt = nDto.CreatedAt
-                };
-                _context.Notifications.Add(notif);
-            }
-            notifCount++;
+            return new SyncDataResultDto(usersCount, profilesCount, yearsCount, semestersCount, coursesCount, scoresCount, auditCount, settingsCount, goalsCount, notifCount, $"CoursesStep: {ex.Message} | {ex.InnerException?.Message}");
         }
-        await _context.SaveChangesAsync(cancellationToken);
+
+        try
+        {
+            // 6. Sync Scores
+            foreach (var scDto in request.Scores)
+            {
+                var sc = await _context.Scores
+                    .FirstOrDefaultAsync(x => x.Id == scDto.Id || x.CourseId == scDto.CourseId, cancellationToken);
+
+                if (sc == null)
+                {
+                    sc = new Score
+                    {
+                        Id = scDto.Id,
+                        CourseId = scDto.CourseId,
+                        AttendanceScore = scDto.AttendanceScore,
+                        ContinuousScore = scDto.ContinuousScore,
+                        FinalExamScore = scDto.FinalExamScore,
+                        CourseScore = scDto.CourseScore,
+                        LetterGrade = scDto.LetterGrade,
+                        Gpa4Value = scDto.Gpa4Value,
+                        AcademicClassification = scDto.AcademicClassification,
+                        IsPass = scDto.IsPass,
+                        CreatedAt = scDto.CreatedAt == default ? DateTime.UtcNow : scDto.CreatedAt,
+                        UpdatedAt = scDto.UpdatedAt == default ? DateTime.UtcNow : scDto.UpdatedAt
+                    };
+                    _context.Scores.Add(sc);
+                }
+                else
+                {
+                    sc.AttendanceScore = scDto.AttendanceScore;
+                    sc.ContinuousScore = scDto.ContinuousScore;
+                    sc.FinalExamScore = scDto.FinalExamScore;
+                    sc.CourseScore = scDto.CourseScore;
+                    sc.LetterGrade = scDto.LetterGrade;
+                    sc.Gpa4Value = scDto.Gpa4Value;
+                    sc.AcademicClassification = scDto.AcademicClassification;
+                    sc.IsPass = scDto.IsPass;
+                    sc.UpdatedAt = DateTime.UtcNow;
+                }
+                scoresCount++;
+            }
+            await _context.SaveChangesAsync(cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            return new SyncDataResultDto(usersCount, profilesCount, yearsCount, semestersCount, coursesCount, scoresCount, auditCount, settingsCount, goalsCount, notifCount, $"ScoresStep: {ex.Message} | {ex.InnerException?.Message}");
+        }
+
+        try
+        {
+            // 7. Sync ScoreAuditLogs
+            foreach (var logDto in request.ScoreAuditLogs)
+            {
+                var log = await _context.ScoreAuditLogs
+                    .FirstOrDefaultAsync(x => x.Id == logDto.Id, cancellationToken);
+
+                if (log == null)
+                {
+                    log = new ScoreAuditLog
+                    {
+                        Id = logDto.Id,
+                        CourseId = logDto.CourseId,
+                        FieldChanged = logDto.FieldChanged,
+                        OldValue = logDto.OldValue,
+                        NewValue = logDto.NewValue,
+                        ChangedAt = logDto.ChangedAt == default ? DateTime.UtcNow : logDto.ChangedAt
+                    };
+                    _context.ScoreAuditLogs.Add(log);
+                }
+                auditCount++;
+            }
+            await _context.SaveChangesAsync(cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            return new SyncDataResultDto(usersCount, profilesCount, yearsCount, semestersCount, coursesCount, scoresCount, auditCount, settingsCount, goalsCount, notifCount, $"AuditLogsStep: {ex.Message} | {ex.InnerException?.Message}");
+        }
+
+        try
+        {
+            // 8. Sync UserSettings
+            foreach (var setDto in request.UserSettings)
+            {
+                var us = await _context.UserSettings
+                    .FirstOrDefaultAsync(x => x.Id == setDto.Id || x.UserId == setDto.UserId, cancellationToken);
+
+                if (us == null)
+                {
+                    us = new UserSettings
+                    {
+                        Id = setDto.Id,
+                        UserId = setDto.UserId,
+                        PreferredLanguage = string.IsNullOrWhiteSpace(setDto.PreferredLanguage) ? "vi" : setDto.PreferredLanguage,
+                        PreferredTheme = string.IsNullOrWhiteSpace(setDto.PreferredTheme) ? "light" : setDto.PreferredTheme,
+                        ReceiveSystem = setDto.ReceiveSystem,
+                        ReceiveAcademic = setDto.ReceiveAcademic,
+                        ReceiveGoal = setDto.ReceiveGoal,
+                        ReceiveGpaMilestone = setDto.ReceiveGpaMilestone,
+                        CreatedAt = setDto.CreatedAt == default ? DateTime.UtcNow : setDto.CreatedAt,
+                        UpdatedAt = setDto.UpdatedAt == default ? DateTime.UtcNow : setDto.UpdatedAt
+                    };
+                    _context.UserSettings.Add(us);
+                }
+                settingsCount++;
+            }
+            await _context.SaveChangesAsync(cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            return new SyncDataResultDto(usersCount, profilesCount, yearsCount, semestersCount, coursesCount, scoresCount, auditCount, settingsCount, goalsCount, notifCount, $"SettingsStep: {ex.Message} | {ex.InnerException?.Message}");
+        }
+
+        try
+        {
+            // 9. Sync AcademicGoals
+            foreach (var gDto in request.AcademicGoals)
+            {
+                var goal = await _context.AcademicGoals
+                    .FirstOrDefaultAsync(x => x.Id == gDto.Id, cancellationToken);
+
+                if (goal == null)
+                {
+                    goal = new AcademicGoal
+                    {
+                        Id = gDto.Id,
+                        StudentProfileId = gDto.StudentProfileId,
+                        TargetCumulativeGpa10 = gDto.TargetCumulativeGpa10,
+                        TargetCumulativeGpa4 = gDto.TargetCumulativeGpa4,
+                        Notes = gDto.Notes,
+                        IsAchieved = gDto.IsAchieved,
+                        IsActive = gDto.IsActive,
+                        CreatedAt = gDto.CreatedAt == default ? DateTime.UtcNow : gDto.CreatedAt
+                    };
+                    _context.AcademicGoals.Add(goal);
+                }
+                goalsCount++;
+            }
+            await _context.SaveChangesAsync(cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            return new SyncDataResultDto(usersCount, profilesCount, yearsCount, semestersCount, coursesCount, scoresCount, auditCount, settingsCount, goalsCount, notifCount, $"GoalsStep: {ex.Message} | {ex.InnerException?.Message}");
+        }
+
+        try
+        {
+            // 10. Sync Notifications
+            foreach (var nDto in request.Notifications)
+            {
+                var notif = await _context.Notifications
+                    .FirstOrDefaultAsync(x => x.Id == nDto.Id, cancellationToken);
+
+                if (notif == null)
+                {
+                    notif = new Notification
+                    {
+                        Id = nDto.Id,
+                        UserId = nDto.UserId,
+                        Title = nDto.Title,
+                        Message = nDto.Message,
+                        Type = nDto.Type,
+                        IsRead = nDto.IsRead,
+                        IsBroadcast = nDto.IsBroadcast,
+                        SenderId = nDto.SenderId,
+                        RecipientName = nDto.RecipientName,
+                        CreatedAt = nDto.CreatedAt == default ? DateTime.UtcNow : nDto.CreatedAt
+                    };
+                    _context.Notifications.Add(notif);
+                }
+                notifCount++;
+            }
+            await _context.SaveChangesAsync(cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            return new SyncDataResultDto(usersCount, profilesCount, yearsCount, semestersCount, coursesCount, scoresCount, auditCount, settingsCount, goalsCount, notifCount, $"NotifsStep: {ex.Message} | {ex.InnerException?.Message}");
+        }
 
         return new SyncDataResultDto(
             usersCount, profilesCount, yearsCount, semestersCount, coursesCount,
