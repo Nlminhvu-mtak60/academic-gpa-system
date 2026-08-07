@@ -106,10 +106,17 @@ public class GoogleLoginCommandHandler : IRequestHandler<GoogleLoginCommand, Aut
         var accessToken = _jwtService.GenerateAccessToken(user);
         var refreshToken = _jwtService.GenerateRefreshToken(request.IpAddress);
 
-        // Revoke active sessions
-        foreach (var token in user.RefreshTokens.Where(t => t.IsActive))
+        // Revoke active sessions safely
+        if (user.RefreshTokens != null)
         {
-            token.RevokedAt = DateTime.UtcNow;
+            foreach (var token in user.RefreshTokens.Where(t => t.IsActive))
+            {
+                token.RevokedAt = DateTime.UtcNow;
+            }
+        }
+        else
+        {
+            user.RefreshTokens = new List<RefreshToken>();
         }
 
         refreshToken.UserId = user.Id;
