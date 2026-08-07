@@ -153,6 +153,13 @@ public class AdminController : ControllerBase
         return Ok(new ApiResponse(true, new { result.Items, result.TotalCount }));
     }
 
+    [HttpPost("sync-local-data")]
+    public async Task<IActionResult> SyncLocalData([FromBody] SyncDataCommand command)
+    {
+        var result = await _mediator.Send(command);
+        return Ok(new ApiResponse(true, result, null, "Local data synchronized successfully to Production."));
+    }
+
     private record ApiResponse(bool Success, object? Data, object? Errors = null, string? Message = null)
     {
         public DateTime Timestamp { get; } = DateTime.UtcNow;
