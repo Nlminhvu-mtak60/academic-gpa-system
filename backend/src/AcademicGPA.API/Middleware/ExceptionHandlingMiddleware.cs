@@ -42,7 +42,7 @@ public class ExceptionHandlingMiddleware
             RateLimitException rateLimitEx => CreateErrorResponse(context, StatusCodes.Status429TooManyRequests, rateLimitEx.Message),
             ForbiddenException forbiddenEx => CreateErrorResponse(context, StatusCodes.Status403Forbidden, forbiddenEx.Message),
             UnauthorizedAccessException unauthorizedEx => CreateErrorResponse(context, StatusCodes.Status401Unauthorized, unauthorizedEx.Message),
-            _ => CreateErrorResponse(context, StatusCodes.Status500InternalServerError, "An internal server error occurred.")
+            _ => CreateErrorResponse(context, StatusCodes.Status500InternalServerError, $"{exception.GetType().Name}: {exception.Message} | Inner: {exception.InnerException?.Message}")
         };
 
         var options = new JsonSerializerOptions 
