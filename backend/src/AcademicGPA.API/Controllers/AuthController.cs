@@ -113,10 +113,15 @@ public class AuthController : ControllerBase
 
     private string GetIpAddress()
     {
-        if (Request.Headers.ContainsKey("X-Forwarded-For"))
-            return Request.Headers["X-Forwarded-For"]!;
+        if (Request.Headers.TryGetValue("X-Forwarded-For", out var headerValue) && !string.IsNullOrWhiteSpace(headerValue))
+        {
+            var rawIp = headerValue.ToString();
+            var firstIp = rawIp.Split(',')[0].Trim();
+            return firstIp.Length > 45 ? firstIp[..45] : firstIp;
+        }
 
-        return HttpContext.Connection.RemoteIpAddress?.MapToIPv4().ToString() ?? "127.0.0.1";
+        var ip = HttpContext.Connection.RemoteIpAddress?.MapToIPv4().ToString() ?? "127.0.0.1";
+        return ip.Length > 45 ? ip[..45] : ip;
     }
 
     private void SetRefreshTokenCookie(string token)

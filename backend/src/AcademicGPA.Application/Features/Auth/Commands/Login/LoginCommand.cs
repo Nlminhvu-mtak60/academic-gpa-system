@@ -83,8 +83,15 @@ public class LoginCommandHandler : IRequestHandler<LoginCommand, AuthResponseDto
         // 6. Save modifications
         await _context.SaveChangesAsync(cancellationToken);
 
-        // Audit successful login
-        await _adminService.LogActivityAsync(user.Id, "Login", request.IpAddress, cancellationToken);
+        // Audit successful login safely
+        try
+        {
+            await _adminService.LogActivityAsync(user.Id, "Login", request.IpAddress, cancellationToken);
+        }
+        catch
+        {
+            // Non-blocking activity logging
+        }
 
         // 7. Map to DTOs
         var userDto = new UserDto(

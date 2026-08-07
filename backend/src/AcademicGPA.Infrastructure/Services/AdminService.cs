@@ -577,11 +577,17 @@ public class AdminService : IAdminService
     /// <inheritdoc />
     public async Task LogActivityAsync(Guid userId, string activity, string ipAddress, CancellationToken cancellationToken)
     {
+        var cleanIp = string.IsNullOrWhiteSpace(ipAddress) ? "127.0.0.1" : ipAddress.Split(',')[0].Trim();
+        if (cleanIp.Length > 45) cleanIp = cleanIp[..45];
+
+        var cleanActivity = string.IsNullOrWhiteSpace(activity) ? "Activity" : activity.Trim();
+        if (cleanActivity.Length > 200) cleanActivity = cleanActivity[..200];
+
         var log = new UserActivityLog
         {
             UserId = userId,
-            Activity = activity,
-            IpAddress = ipAddress ?? "127.0.0.1",
+            Activity = cleanActivity,
+            IpAddress = cleanIp,
             Timestamp = DateTime.UtcNow
         };
         _context.UserActivityLogs.Add(log);
