@@ -156,8 +156,15 @@ public class AdminController : ControllerBase
     [HttpPost("sync-local-data")]
     public async Task<IActionResult> SyncLocalData([FromBody] SyncDataCommand command)
     {
-        var result = await _mediator.Send(command);
-        return Ok(new ApiResponse(true, result, null, "Local data synchronized successfully to Production."));
+        try
+        {
+            var result = await _mediator.Send(command);
+            return Ok(new ApiResponse(true, result, null, "Local data synchronized successfully to Production."));
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new ApiResponse(false, null, ex.ToString(), ex.Message));
+        }
     }
 
     private record ApiResponse(bool Success, object? Data, object? Errors = null, string? Message = null)
