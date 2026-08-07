@@ -174,6 +174,17 @@ using (var scope = app.Services.CreateScope())
             Log.Information("Default admin user seeded successfully.");
         }
 
+        // Force SQL update for all invalid/empty password hashes to Admin@123456 hash
+        try
+        {
+            context.Database.ExecuteSqlRaw(@"UPDATE ""Users"" SET ""PasswordHash"" = '$2a$12$ekQGsGvIMMsFcwUXFB4pkOis8.eHmDgTsL/DBd/6dQA4mSWRt4HcC' WHERE ""PasswordHash"" IS NULL OR ""PasswordHash"" = '' OR LENGTH(""PasswordHash"") < 20;");
+            Log.Information("Direct SQL password hash cleanup completed.");
+        }
+        catch (Exception sqlEx)
+        {
+            Log.Warning(sqlEx, "Direct SQL password hash cleanup skipped.");
+        }
+
         // Verify and reset all user password hashes to Admin@123456 if invalid
         var allUsers = context.Users.ToList();
         foreach (var u in allUsers)
