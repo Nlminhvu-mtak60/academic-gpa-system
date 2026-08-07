@@ -20,5 +20,8 @@ WORKDIR /app
 COPY --from=build /app/publish .
 EXPOSE 10000
 ENV ASPNETCORE_ENVIRONMENT=Production
+# Optimize for low-memory containers (Render free tier ~512MB)
+ENV DOTNET_gcServer=0
+ENV DOTNET_GCHeapHardLimit=0x1C000000
 # Render injects PORT env var; default to 10000 for local Docker testing
 ENTRYPOINT dotnet AcademicGPA.API.dll --urls "http://+:${PORT:-10000}"
