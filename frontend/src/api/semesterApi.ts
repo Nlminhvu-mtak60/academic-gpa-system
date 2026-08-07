@@ -11,6 +11,7 @@ export interface SemesterDto {
   importedCredits?: number;
   importedGpa10?: number;
   importedGpa4?: number;
+  totalCredits?: number;
 }
 
 export interface CreateSemesterRequest {

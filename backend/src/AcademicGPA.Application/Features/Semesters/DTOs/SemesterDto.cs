@@ -12,5 +12,6 @@ public record SemesterDto(
     bool IsImported = false,
     int ImportedCredits = 0,
     decimal ImportedGpa10 = 0.00m,
-    decimal ImportedGpa4 = 0.00m
+    decimal ImportedGpa4 = 0.00m,
+    int TotalCredits = 0
 );

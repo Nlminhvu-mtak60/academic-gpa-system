@@ -352,7 +352,14 @@ export const SemestersPage: React.FC = () => {
               <div className="grid grid-cols-3 gap-3 mt-6 p-3.5 bg-gray-50 dark:bg-gray-950/60 rounded-xl border border-gray-100 dark:border-gray-800/40">
                 <div className="text-center">
                   <span className="block text-xs text-gray-400 dark:text-gray-500 font-medium">Credits</span>
-                  <span className="block text-sm font-bold text-gray-800 dark:text-gray-200 mt-0.5">{sem.completedCredits}</span>
+                  <span 
+                    className="block text-sm font-bold text-gray-800 dark:text-gray-200 mt-0.5"
+                    title={sem.totalCredits ? `Tín chỉ đã đạt: ${sem.completedCredits} / Tổng đăng ký: ${sem.totalCredits}` : 'Tín chỉ đã hoàn thành'}
+                  >
+                    {sem.totalCredits && sem.totalCredits > sem.completedCredits 
+                      ? `${sem.completedCredits} / ${sem.totalCredits}` 
+                      : sem.completedCredits}
+                  </span>
                 </div>
                 <div className="text-center border-x border-gray-200 dark:border-gray-800">
                   <span className="block text-xs text-gray-400 dark:text-gray-500 font-medium">GPA (10)</span>

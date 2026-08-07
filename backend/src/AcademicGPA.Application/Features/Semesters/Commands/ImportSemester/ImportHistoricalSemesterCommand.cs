@@ -114,7 +114,8 @@ public class ImportHistoricalSemesterCommandHandler : IRequestHandler<ImportHist
             semester.IsImported,
             semester.ImportedCredits,
             semester.ImportedGpa10,
-            semester.ImportedGpa4
+            semester.ImportedGpa4,
+            semester.ImportedCredits
         );
     }
 }

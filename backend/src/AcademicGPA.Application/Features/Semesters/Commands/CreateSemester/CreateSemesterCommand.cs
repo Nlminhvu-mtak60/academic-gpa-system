@@ -100,7 +100,12 @@ public class CreateSemesterCommandHandler : IRequestHandler<CreateSemesterComman
             semester.SortOrder,
             0,
             0.00m,
-            0.00m
+            0.00m,
+            false,
+            0,
+            0.00m,
+            0.00m,
+            0
         );
     }
 }

@@ -77,12 +77,14 @@ public class GetSemestersQueryHandler : IRequestHandler<GetSemestersQuery, IRead
                     s.IsImported,
                     s.ImportedCredits,
                     s.ImportedGpa10,
-                    s.ImportedGpa4
+                    s.ImportedGpa4,
+                    s.ImportedCredits
                 ));
             }
             else
             {
-                var semCourses = s.Courses.ToList();
+                var semCourses = s.Courses.Where(c => !c.IsDeleted).ToList();
+                var totalCredits = semCourses.Sum(c => c.Credits);
                 var bestAttempts = _gpaCalculator.FilterBestAttempts(semCourses).ToList();
                 var gradedBestAttempts = bestAttempts.Where(c => c.Score != null && c.Score.CourseScore.HasValue).ToList();
 
@@ -103,7 +105,8 @@ public class GetSemestersQueryHandler : IRequestHandler<GetSemestersQuery, IRead
                     s.IsImported,
                     s.ImportedCredits,
                     s.ImportedGpa10,
-                    s.ImportedGpa4
+                    s.ImportedGpa4,
+                    totalCredits
                 ));
             }
         }
