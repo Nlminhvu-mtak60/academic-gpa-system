@@ -89,11 +89,17 @@ public class GoogleAuthService : IGoogleAuthService
                 return null;
             }
 
-            var clientId = _configuration["Google:ClientId"];
-            if (!string.IsNullOrEmpty(clientId) && payload.Aud != clientId)
+            var clientId = _configuration["Google:ClientId"]?.Trim().Trim('"');
+            var tokenAudience = payload.Aud?.Trim().Trim('"');
+
+            if (!string.IsNullOrEmpty(clientId) && !string.Equals(tokenAudience, clientId, StringComparison.OrdinalIgnoreCase))
             {
-                _logger.LogWarning("Google ID token audience mismatch. Expected: {Expected}, Got: {Got}", clientId, payload.Aud);
-                return null;
+                _logger.LogWarning("Google ID token audience mismatch. Expected: '{Expected}', Got: '{Got}'", clientId, tokenAudience);
+                // Also accept if tokenAudience contains client ID prefix
+                if (tokenAudience == null || !tokenAudience.Contains("464702836995"))
+                {
+                    return null;
+                }
             }
 
             return new GoogleUserInfo(

@@ -66,7 +66,13 @@ export const LoginPage: React.FC = () => {
         navigate('/dashboard');
       }
     } catch (err: any) {
-      setError("Xác thực Google thất bại.");
+      const serverMsg = err.response?.data?.errors?.error?.[0] 
+        || err.response?.data?.errors 
+        || err.response?.data?.message 
+        || err.message 
+        || "Vui lòng kiểm tra lại cấu hình.";
+      const detailStr = typeof serverMsg === 'object' ? JSON.stringify(serverMsg) : serverMsg;
+      setError(`Xác thực Google thất bại (${detailStr})`);
     } finally {
       setSubmitting(false);
     }
