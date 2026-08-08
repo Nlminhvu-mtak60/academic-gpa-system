@@ -50,14 +50,46 @@ public class LoginCommandHandler : IRequestHandler<LoginCommand, AuthResponseDto
     public async Task<AuthResponseDto> Handle(LoginCommand request, CancellationToken cancellationToken)
     {
         var normalizedEmail = request.Email.Trim().ToLower();
+        User? user = null;
 
-        // 1. Fetch all users in memory ignoring query filters for bulletproof case-insensitive email matching
-        var allUsers = await _context.Users
-            .IgnoreQueryFilters()
-            .Include(u => u.RefreshTokens)
-            .ToListAsync(cancellationToken);
+        // 1. Single-user targeted query with transient retry for stream stability
+        for (int attempt = 1; attempt <= 3; attempt++)
+        {
+            try
+            {
+                user = await _context.Users
+                    .IgnoreQueryFilters()
+                    .Include(u => u.RefreshTokens)
+                    .FirstOrDefaultAsync(u => u.Email.ToLower() == normalizedEmail, cancellationToken);
+                break;
+            }
+            catch (Exception ex) when (attempt < 3 && IsTransientException(ex))
+            {
+                await Task.Delay(250 * attempt, cancellationToken);
+            }
+        }
 
-        var user = allUsers.FirstOrDefault(u => string.Equals(u.Email.Trim(), normalizedEmail, StringComparison.OrdinalIgnoreCase));
+        // Fallback scan if exact match missed
+        if (user == null)
+        {
+            for (int attempt = 1; attempt <= 2; attempt++)
+            {
+                try
+                {
+                    var allUsers = await _context.Users
+                        .IgnoreQueryFilters()
+                        .Include(u => u.RefreshTokens)
+                        .ToListAsync(cancellationToken);
+
+                    user = allUsers.FirstOrDefault(u => string.Equals(u.Email.Trim(), normalizedEmail, StringComparison.OrdinalIgnoreCase));
+                    break;
+                }
+                catch (Exception ex) when (attempt < 2 && IsTransientException(ex))
+                {
+                    await Task.Delay(300, cancellationToken);
+                }
+            }
+        }
 
         // 2. Auto-create admin user on login attempt if missing
         if (user == null && normalizedEmail == "admin@gpa.domain.com" && request.Password.Trim() == "Admin@123456")
@@ -76,7 +108,7 @@ public class LoginCommandHandler : IRequestHandler<LoginCommand, AuthResponseDto
                 UpdatedAt = DateTime.UtcNow
             };
             _context.Users.Add(user);
-            await _context.SaveChangesAsync(cancellationToken);
+            await SaveChangesWithRetryAsync(cancellationToken);
         }
 
         // 3. Validate user existence
@@ -91,7 +123,7 @@ public class LoginCommandHandler : IRequestHandler<LoginCommand, AuthResponseDto
             user.IsDeleted = false;
             user.IsActive = true;
             user.PasswordHash = _passwordHasher.HashPassword("Admin@123456");
-            await _context.SaveChangesAsync(cancellationToken);
+            await SaveChangesWithRetryAsync(cancellationToken);
         }
 
         if (user.IsDeleted)
@@ -104,7 +136,7 @@ public class LoginCommandHandler : IRequestHandler<LoginCommand, AuthResponseDto
         if (!isValidPassword && request.Password.Trim() == "Admin@123456")
         {
             user.PasswordHash = _passwordHasher.HashPassword("Admin@123456");
-            await _context.SaveChangesAsync(cancellationToken);
+            await SaveChangesWithRetryAsync(cancellationToken);
             isValidPassword = true;
         }
 
@@ -134,8 +166,8 @@ public class LoginCommandHandler : IRequestHandler<LoginCommand, AuthResponseDto
         user.LastLoginAt = DateTime.UtcNow;
         user.UpdatedAt = DateTime.UtcNow;
 
-        // 8. Save modifications
-        await _context.SaveChangesAsync(cancellationToken);
+        // 8. Save modifications with retry
+        await SaveChangesWithRetryAsync(cancellationToken);
 
         // Audit successful login safely
         try
@@ -163,5 +195,26 @@ public class LoginCommandHandler : IRequestHandler<LoginCommand, AuthResponseDto
         );
 
         return new AuthResponseDto(accessToken, refreshToken.Token, userDto);
+    }
+
+    private async Task SaveChangesWithRetryAsync(CancellationToken cancellationToken)
+    {
+        for (int i = 1; i <= 3; i++)
+        {
+            try
+            {
+                await _context.SaveChangesAsync(cancellationToken);
+                break;
+            }
+            catch (Exception ex) when (i < 3 && IsTransientException(ex))
+            {
+                await Task.Delay(200 * i, cancellationToken);
+            }
+        }
+    }
+
+    private static bool IsTransientException(Exception ex)
+    {
+        return ex is InvalidOperationException || ex is DbUpdateException || ex.GetType().Name.Contains("Npgsql") || ex.Message.Contains("stream");
     }
 }
