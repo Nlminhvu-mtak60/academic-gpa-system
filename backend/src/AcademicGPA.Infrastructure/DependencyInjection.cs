@@ -25,8 +25,14 @@ public static class DependencyInjection
         var connectionString = ParsePostgresUri(rawConnectionString);
 
         services.AddDbContext<ApplicationDbContext>(options =>
-            options.UseNpgsql(connectionString,
-                b => b.MigrationsAssembly(typeof(ApplicationDbContext).Assembly.FullName)));
+            options.UseNpgsql(connectionString, b =>
+            {
+                b.MigrationsAssembly(typeof(ApplicationDbContext).Assembly.FullName);
+                b.EnableRetryOnFailure(
+                    maxRetryCount: 5,
+                    maxRetryDelay: TimeSpan.FromSeconds(10),
+                    errorCodesToAdd: null);
+            }));
 
         services.AddScoped<IApplicationDbContext>(provider => provider.GetRequiredService<ApplicationDbContext>());
         services.AddScoped<IUnitOfWork, UnitOfWork>();
@@ -95,9 +101,15 @@ public static class DependencyInjection
             var port = uri.Port == -1 ? 5432 : uri.Port;
             var database = uri.AbsolutePath.TrimStart('/');
 
-            // Format into Npgsql-compatible connection string with SSL requirements for cloud databases like Render/Neon
-            return $"Host={host};Port={port};Database={database};Username={username};Password={password};SSL Mode=Require;Trust Server Certificate=true;";
+            // Format into Npgsql-compatible connection string with SSL requirements and connection pooling resilience
+            return $"Host={host};Port={port};Database={database};Username={username};Password={password};SSL Mode=Require;Trust Server Certificate=true;KeepAlive=30;Timeout=30;CommandTimeout=60;";
         }
+
+        if (!connectionString.Contains("KeepAlive", StringComparison.OrdinalIgnoreCase))
+        {
+            connectionString += ";KeepAlive=30;Timeout=30;CommandTimeout=60;";
+        }
+
         return connectionString;
     }
 }
